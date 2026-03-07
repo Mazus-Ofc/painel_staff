@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MZ Staff Panel</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app" class="hidden">
+      <div class="overlay">
+        <div class="tablet-frame">
+          <aside class="sidebar">
+            <div class="logo">
+              <div class="logo-mark">ADM</div>
+              <div>
+                <strong id="serverName">Staff</strong>
+                <small>Administração</small>
+              </div>
+            </div>
+
+            <button class="nav active" data-tab="dashboard">Dashboard</button>
+            <button class="nav" data-tab="players">Jogadores</button>
+            <button class="nav" data-tab="actions">Staff</button>
+            <button class="nav" data-tab="vehicles">Veículos</button>
+            <button class="nav" data-tab="punishments">Punições</button>
+            <button class="nav" data-tab="dev">Dev</button>
+            <button class="nav" data-tab="commands">Comandos</button>
+          </aside>
+
+          <main class="content">
+            <header class="topbar">
+              <div>
+                <h1>Painel da Staff</h1>
+                <p>Administração da Cidade Maravilhosa</p>
+              </div>
+              <div class="top-actions">
+                <button id="refreshBtn" class="btn ghost">Atualizar</button>
+                <button id="closeBtn" class="btn danger">Fechar</button>
+              </div>
+            </header>
+
+            <section id="tab-dashboard" class="tab active">
+              <div class="grid stats">
+                <article class="card stat-card"><span>Online</span><strong id="statOnline">0</strong></article>
+                <article class="card stat-card"><span>Seu ID</span><strong id="statMe">0</strong></article>
+                <article class="card stat-card"><span>Staff online</span><strong id="statStaff">0</strong></article>
+              </div>
+              <div class="card">
+                <h3>Seu acesso</h3>
+                <div id="permPills" class="pill-wrap"></div>
+              </div>
+            </section>
+
+            <section id="tab-players" class="tab">
+              <div class="card">
+                <div class="table-head">
+                  <h3>Jogadores online</h3>
+                  <input id="searchInput" type="text" placeholder="Buscar por nome, id, citizenid..." />
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>ID</th><th>Nome</th><th>Job</th><th>Gang</th><th>Staff</th><th>Ping</th><th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="playerRows"></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <section id="tab-actions" class="tab">
+              <div class="grid actions-grid" id="quickActions"></div>
+            </section>
+
+            <section id="tab-vehicles" class="tab">
+              <div class="card">
+                <div class="table-head">
+                  <h3>Gerar veículos</h3>
+                  <input id="vehicleSearchInput" type="text" placeholder="Buscar por nome, spawn, marca, categoria..." />
+                </div>
+                <div id="vehicleGrid" class="vehicle-grid"></div>
+              </div>
+            </section>
+
+            <section id="tab-punishments" class="tab">
+              <div class="grid two-col">
+                <div class="card form-card">
+                  <h3>Anúncio global</h3>
+                  <textarea id="announceMessage" placeholder="Digite a mensagem do anúncio..."></textarea>
+                  <button id="sendAnnounce" class="btn">Enviar anúncio</button>
+                </div>
+                <div class="card form-card">
+                  <h3>Staffchat</h3>
+                  <textarea id="staffchatMessage" placeholder="Mensagem para a staff..."></textarea>
+                  <button id="sendStaffchat" class="btn">Enviar staffchat</button>
+                </div>
+                <div class="card form-card">
+                  <h3>Kick all</h3>
+                  <textarea id="kickallReason" placeholder="Motivo do kick all..."></textarea>
+                  <button id="sendKickall" class="btn danger">Kickar todos</button>
+                </div>
+                <div class="card form-card">
+                  <h3>Resposta de report</h3>
+                  <input id="reportReplyId" type="number" placeholder="ID do jogador" />
+                  <textarea id="reportReplyMessage" placeholder="Mensagem da resposta..."></textarea>
+                  <button id="sendReportReply" class="btn">Responder report</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="tab-dev" class="tab">
+              <div class="grid two-col">
+                <div class="card form-card">
+                  <h3>Modelo</h3>
+                  <input id="setModelInput" type="text" placeholder="a_m_m_bevhills_01 ou mp_m_freemode_01" />
+                  <input id="setModelTarget" type="number" placeholder="ID opcional" />
+                  <button id="sendSetModel" class="btn">Aplicar modelo</button>
+                </div>
+                <div class="card form-card">
+                  <h3>Velocidade</h3>
+                  <input id="setSpeedInput" type="text" placeholder="fast ou normal" />
+                  <input id="setSpeedTarget" type="number" placeholder="ID opcional" />
+                  <button id="sendSetSpeed" class="btn">Aplicar velocidade</button>
+                </div>
+                <div class="card form-card">
+                  <h3>Munição</h3>
+                  <input id="setAmmoInput" type="number" placeholder="Quantidade" />
+                  <input id="setAmmoTarget" type="number" placeholder="ID opcional" />
+                  <button id="sendSetAmmo" class="btn">Aplicar munição</button>
+                </div>
+                <div class="card form-card">
+                  <h3>NUI Focus</h3>
+                  <input id="nuiFocusTarget" type="number" placeholder="ID do jogador" />
+                  <div class="inline-checks">
+                    <label><input id="nuiFocusFlag" type="checkbox" checked /> Focus</label>
+                    <label><input id="nuiMouseFlag" type="checkbox" checked /> Mouse</label>
+                  </div>
+                  <button id="sendNuiFocus" class="btn">Aplicar focus</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="tab-commands" class="tab">
+              <div class="card">
+                <h3>Comandos usuais</h3>
+                <div class="command-list" id="commandList"></div>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
