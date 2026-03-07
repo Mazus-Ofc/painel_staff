@@ -72,6 +72,31 @@ local function buildPermMap(src)
     return out
 end
 
+
+local function getMzPermExport()
+    local resource = tostring(Config.MzPermResource or 'mz_perm')
+    if GetResourceState(resource) ~= 'started' then return nil end
+    return exports[resource]
+end
+
+local function canManageStaffPanel(src)
+    local actionKey = tostring(Config.StaffManageAction or 'setPermissions')
+    return requireAction(src, actionKey)
+end
+
+local function getAssignableStaffRolesFor(src)
+    local mz = getMzPermExport()
+    if not mz or not mz.GetAssignableStaffRoles then return {}, 0 end
+    local data = mz:GetAssignableStaffRoles(src)
+    return (data and data.roles) or {}, tonumber(data and data.actorLevel or 0) or 0
+end
+
+local function getPlayerStaffRolesFor(target)
+    local mz = getMzPermExport()
+    if not mz or not mz.GetPlayerStaffRoles then return { ok = false, error = 'mz_perm indisponível.' } end
+    return mz:GetPlayerStaffRoles(target)
+end
+
 local function getVehicleList()
     local out, seen = {}, {}
     local shared = (QBCore.Shared and QBCore.Shared.Vehicles) or {}
@@ -387,6 +412,32 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
             openReports = tonumber(openReports) or 0
         },
         vehiclePreviewLimit = tonumber(Config.VehiclePreviewLimit or 120) or 120
+    })
+end)
+
+
+QBCore.Functions.CreateCallback('mz_staffpanel:server:getStaffManageData', function(src, cb, targetId)
+    if not canManageStaffPanel(src) then return cb({ ok = false, error = 'Sem permissão.' }) end
+    local target = tonumber(targetId or 0) or 0
+    if target <= 0 then return cb({ ok = false, error = 'Jogador inválido.' }) end
+    local player = QBCore.Functions.GetPlayer(target)
+    if not player then return cb({ ok = false, error = 'Jogador offline.' }) end
+
+    local rolesData = getPlayerStaffRolesFor(target)
+    local assignable, actorLevel = getAssignableStaffRolesFor(src)
+    cb({
+        ok = true,
+        target = {
+            id = target,
+            name = getPlayerNameSafe(player),
+            citizenid = player.PlayerData.citizenid or '-',
+            license = player.PlayerData.license or getIdentifierSafe(target, 'license') or '-'
+        },
+        currentRoles = (rolesData and rolesData.roles) or {},
+        highestRole = rolesData and rolesData.highestRole or nil,
+        highestLevel = tonumber(rolesData and rolesData.highestLevel or 0) or 0,
+        assignableRoles = assignable or {},
+        actorLevel = actorLevel or 0
     })
 end)
 
@@ -1062,6 +1113,80 @@ RegisterNetEvent('mz_staffpanel:server:supportSend', function(payload)
         else
             addReportMessage(reportId, 'player', src, msg, { action = 'reply' })
         end
+    end
+end)
+
+
+RegisterNetEvent('mz_staffpanel:server:manageStaffRole', function(payload)
+    local src = source
+    if not canManageStaffPanel(src) then return end
+    payload = type(payload) == 'table' and payload or {}
+    local target = tonumber(payload.target or 0) or 0
+    local role = tostring(payload.role or ''):lower()
+    local mode = tostring(payload.mode or 'add'):lower()
+    local note = tostring(payload.note or '')
+    if target <= 0 or role == '' then return notify(src, 'Dados inválidos para cargo.', 'error') end
+
+    local mz = getMzPermExport()
+    if not mz or not mz.ManageStaffRole then
+        return notify(src, 'Integração com mz_perm indisponível.', 'error')
+    end
+
+    local before = getPlayerStaffRolesFor(target)
+    local ok, err = mz:ManageStaffRole(src, target, mode, role)
+    if not ok then
+        return notify(src, err or 'Não foi possível alterar o cargo.', 'error')
+    end
+
+    local after = getPlayerStaffRolesFor(target)
+    local targetInfo = getTargetInfo(target)
+    local actor = getActorInfo(src)
+    local actionName = mode == 'remove' and 'staff_remove' or 'staff_add'
+    local msg = (mode == 'remove' and 'Removeu cargo de staff.' or 'Definiu cargo de staff.')
+    addLog('staff_manage', actionName, src, target, msg, {
+        role = role,
+        note = note,
+        before = before and before.roles or {},
+        after = after and after.roles or {},
+        actor = actor.name,
+        target = targetInfo.name
+    })
+    notify(src, (mode == 'remove' and 'Cargo removido: %s' or 'Cargo definido: %s'):format(role), 'success')
+    if target ~= src and isOnline(target) then
+        notify(target, (mode == 'remove' and 'Seu cargo de staff foi removido: %s' or 'Você recebeu cargo de staff: %s'):format(role), mode == 'remove' and 'error' or 'success')
+    end
+end)
+
+RegisterNetEvent('mz_staffpanel:server:clearStaffRoles', function(payload)
+    local src = source
+    if not canManageStaffPanel(src) then return end
+    payload = type(payload) == 'table' and payload or {}
+    local target = tonumber(payload.target or 0) or 0
+    local note = tostring(payload.note or '')
+    if target <= 0 then return notify(src, 'Jogador inválido.', 'error') end
+    local before = getPlayerStaffRolesFor(target)
+    if not before or not before.ok or #(before.roles or {}) == 0 then
+        return notify(src, 'Esse jogador não possui cargos de staff.', 'error')
+    end
+    local mz = getMzPermExport()
+    if not mz or not mz.ManageStaffRole then
+        return notify(src, 'Integração com mz_perm indisponível.', 'error')
+    end
+    for _, role in ipairs(before.roles) do
+        local ok, err = mz:ManageStaffRole(src, target, 'remove', role)
+        if not ok then
+            return notify(src, err or ('Falha ao remover cargo %s.'):format(role), 'error')
+        end
+    end
+    local after = getPlayerStaffRolesFor(target)
+    addLog('staff_manage', 'staff_clear', src, target, 'Removeu todos os cargos de staff.', {
+        note = note,
+        before = before.roles or {},
+        after = after and after.roles or {}
+    })
+    notify(src, 'Todos os cargos de staff foram removidos.', 'success')
+    if target ~= src and isOnline(target) then
+        notify(target, 'Você não faz mais parte da staff.', 'error')
     end
 end)
 

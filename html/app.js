@@ -42,6 +42,7 @@ const supportGotoBtn = document.getElementById('supportGotoBtn')
 
 let state = { players: [], perms: {}, vehicles: [], stats: {}, logs: [], reports: [], recentCommands: [], bans: [] }
 let selectedPlayer = null
+let playerStaffState = { currentRoles: [], assignableRoles: [], actorLevel: 0 }
 let supportState = { reportId: 0, role: 'staff', canManage: false, report: null, messages: [], poll: null, supportOnly: false }
 
 const commands = [
@@ -90,6 +91,9 @@ document.querySelectorAll('.nav').forEach(btn => btn.addEventListener('click', (
 document.getElementById('closeBtn').addEventListener('click', () => nui('close'))
 document.getElementById('refreshBtn').addEventListener('click', () => nui('refresh'))
 document.getElementById('closePlayerModal').addEventListener('click', closePlayerModal)
+document.getElementById('playerStaffAddBtn')?.addEventListener('click', () => submitPlayerStaff('add'))
+document.getElementById('playerStaffRemoveBtn')?.addEventListener('click', () => submitPlayerStaff('remove'))
+document.getElementById('playerStaffClearBtn')?.addEventListener('click', () => submitPlayerStaff('clear'))
 document.getElementById('closeSupportModal').addEventListener('click', closeSupportModal)
 window.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!playerModal.classList.contains('hidden')) closePlayerModal(); else if (!supportModal.classList.contains('hidden')) closeSupportModal(); else nui('close') } })
 searchInput.addEventListener('input', renderPlayers)
@@ -227,11 +231,63 @@ function openPlayerModal(playerId) {
   playerDetailActions.querySelectorAll('.mini').forEach(btn => btn.addEventListener('click', () => {
     performAction(btn.dataset.action, Number(btn.dataset.target))
   }))
+  loadPlayerStaffManager(selectedPlayer.id)
+}
+
+
+
+async function loadPlayerStaffManager(playerId) {
+  const managerWrap = document.getElementById('playerStaffManager')
+  if (!managerWrap) return
+  if (!state.perms.setPermissions) {
+    managerWrap.classList.add('hidden')
+    return
+  }
+  managerWrap.classList.remove('hidden')
+  const select = document.getElementById('playerStaffRoleSelect')
+  const currentWrap = document.getElementById('playerStaffCurrent')
+  const infoWrap = document.getElementById('playerStaffAssignable')
+  const resp = await nui('getStaffManageData', { target: playerId }).then(r => r.json())
+  if (!resp?.ok) {
+    currentWrap.innerHTML = `<span class="tag rejeitado">${escapeHtml(resp?.error || 'Falha ao carregar cargos.')}</span>`
+    if (select) select.innerHTML = '<option value="">Sem opções</option>'
+    if (infoWrap) infoWrap.textContent = ''
+    return
+  }
+  playerStaffState = {
+    currentRoles: resp.currentRoles || [],
+    assignableRoles: resp.assignableRoles || [],
+    actorLevel: Number(resp.actorLevel || 0)
+  }
+  currentWrap.innerHTML = (playerStaffState.currentRoles.length ? playerStaffState.currentRoles : ['sem cargo']).map(role => `<span class="pill">${escapeHtml(role)}</span>`).join('')
+  select.innerHTML = (playerStaffState.assignableRoles || []).map(item => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)} • nível ${escapeHtml(item.level)}</option>`).join('') || '<option value="">Sem cargos disponíveis</option>'
+  if (infoWrap) {
+    infoWrap.textContent = `Você pode definir cargos até o seu nível de gestão. Opções disponíveis: ${(playerStaffState.assignableRoles || []).map(item => item.name).join(', ') || 'nenhuma'}.`
+  }
+}
+
+async function submitPlayerStaff(mode) {
+  if (!selectedPlayer) return
+  const select = document.getElementById('playerStaffRoleSelect')
+  const note = document.getElementById('playerStaffNote')
+  const role = select?.value || ''
+  if ((mode === 'add' || mode === 'remove') && !role) return
+  if (mode === 'clear') {
+    await nui('clearStaffRoles', { target: selectedPlayer.id, note: note?.value || '' })
+  } else {
+    await nui('manageStaffRole', { target: selectedPlayer.id, role, mode, note: note?.value || '' })
+  }
+  if (note) note.value = ''
+  setTimeout(async () => {
+    await nui('refresh')
+    openPlayerModal(selectedPlayer.id)
+  }, 250)
 }
 
 function closePlayerModal() {
   playerModal.classList.add('hidden')
   selectedPlayer = null
+  playerStaffState = { currentRoles: [], assignableRoles: [], actorLevel: 0 }
 }
 
 function renderSupportMessages() {

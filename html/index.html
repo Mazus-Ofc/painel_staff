@@ -250,6 +250,23 @@
             <h4>Ações</h4>
             <div id="playerDetailActions" class="row-actions left"></div>
           </div>
+          <div id="playerStaffManager" class="staff-manager-block">
+            <div class="section-head compact-head">
+              <h4>Gerenciar staff</h4>
+              <small>Integração com mz_perm</small>
+            </div>
+            <div id="playerStaffCurrent" class="pill-wrap"></div>
+            <div class="staff-manage-grid">
+              <select id="playerStaffRoleSelect"></select>
+              <input id="playerStaffNote" type="text" placeholder="Observação do log (opcional)" />
+            </div>
+            <div class="row-actions left">
+              <button id="playerStaffAddBtn" class="btn">Definir cargo</button>
+              <button id="playerStaffRemoveBtn" class="btn ghost">Remover cargo</button>
+              <button id="playerStaffClearBtn" class="btn danger ghost">Desligar staff</button>
+            </div>
+            <div id="playerStaffAssignable" class="mini-help"></div>
+          </div>
         </div>
       </div>
     </div>

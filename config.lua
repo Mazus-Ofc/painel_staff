@@ -21,6 +21,8 @@ Config.OpenInventoryResource = 'qb-inventory'
 Config.ClothingEvent = 'qb-clothing:client:openMenu'
 Config.QBBypassPermissions = { 'admin', 'god' }
 Config.AceBypassPermissions = { 'mz_staffpanel.bypass', 'command.admin', 'command.god' }
+Config.MzPermResource = 'mz_perm'
+Config.StaffManageAction = 'setPermissions'
 
 Config.ActionPerms = {
     spectate = 'helper',
