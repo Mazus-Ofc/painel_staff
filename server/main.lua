@@ -106,14 +106,36 @@ local function getOnlinePlayersData()
         if #staffNames > 0 or hasQBBypass(Player.PlayerData.source) then
             staffOnline = staffOnline + 1
         end
+        local src = Player.PlayerData.source
+        local ped = GetPlayerPed(src)
+        local coords = ped ~= 0 and GetEntityCoords(ped) or vec3(0.0, 0.0, 0.0)
+        local health = ped ~= 0 and GetEntityHealth(ped) or 0
+        local armor = ped ~= 0 and GetPedArmour(ped) or 0
+        local identifiers = {
+            license = Player.PlayerData.license or getIdentifierSafe(src, 'license') or '-',
+            discord = getIdentifierSafe(src, 'discord') or '-',
+            steam = getIdentifierSafe(src, 'steam') or '-',
+            fivem = getIdentifierSafe(src, 'fivem') or '-'
+        }
         list[#list + 1] = {
-            id = Player.PlayerData.source,
+            id = src,
             name = getPlayerNameSafe(Player),
             citizenid = Player.PlayerData.citizenid or '-',
             job = (Player.PlayerData.job and (Player.PlayerData.job.label or Player.PlayerData.job.name)) or '-',
             gang = (Player.PlayerData.gang and (Player.PlayerData.gang.label or Player.PlayerData.gang.name)) or '-',
             staff = staffNames,
-            ping = GetPlayerPing(Player.PlayerData.source)
+            ping = GetPlayerPing(src),
+            bucket = GetPlayerRoutingBucket(src) or 0,
+            health = health,
+            armor = armor,
+            cash = (Player.PlayerData.money and Player.PlayerData.money.cash) or 0,
+            bank = (Player.PlayerData.money and Player.PlayerData.money.bank) or 0,
+            phone = Player.PlayerData.charinfo and Player.PlayerData.charinfo.phone or '-',
+            license = identifiers.license,
+            discord = identifiers.discord,
+            steam = identifiers.steam,
+            fivem = identifiers.fivem,
+            coords = { x = coords.x, y = coords.y, z = coords.z }
         }
     end
     table.sort(list, function(a, b) return a.id < b.id end)
@@ -153,11 +175,184 @@ local function ensureTables()
             KEY `idx_targetIdentifier` (`targetIdentifier`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]=]):format(Config.WarnTable))
+
+    MySQL.query.await(([=[
+        CREATE TABLE IF NOT EXISTS `%s` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `category` VARCHAR(64) NOT NULL,
+            `action` VARCHAR(64) NOT NULL,
+            `actor_src` INT NULL,
+            `actor_name` VARCHAR(255) NULL,
+            `actor_license` VARCHAR(80) NULL,
+            `target_src` INT NULL,
+            `target_name` VARCHAR(255) NULL,
+            `target_license` VARCHAR(80) NULL,
+            `message` TEXT NULL,
+            `metadata` LONGTEXT NULL,
+            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_category` (`category`),
+            KEY `idx_action` (`action`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]=]):format(Config.LogTable or 'staff_logs'))
+
+    MySQL.query.await(([=[
+        CREATE TABLE IF NOT EXISTS `%s` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `player_src` INT NULL,
+            `player_name` VARCHAR(255) NULL,
+            `player_license` VARCHAR(80) NULL,
+            `player_citizenid` VARCHAR(80) NULL,
+            `message` TEXT NULL,
+            `status` VARCHAR(32) NOT NULL DEFAULT 'pendente',
+            `priority` VARCHAR(32) NULL DEFAULT 'normal',
+            `accepted_by_src` INT NULL,
+            `accepted_by_name` VARCHAR(255) NULL,
+            `accepted_at` TIMESTAMP NULL DEFAULT NULL,
+            `closed_by_src` INT NULL,
+            `closed_by_name` VARCHAR(255) NULL,
+            `closed_at` TIMESTAMP NULL DEFAULT NULL,
+            `response` TEXT NULL,
+            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_status` (`status`),
+            KEY `idx_player_license` (`player_license`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]=]):format(Config.ReportTable or 'staff_reports'))
+
+    MySQL.query.await(([=[
+        CREATE TABLE IF NOT EXISTS `%s` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `report_id` INT NOT NULL,
+            `sender_type` VARCHAR(24) NOT NULL,
+            `sender_src` INT NULL,
+            `sender_name` VARCHAR(255) NULL,
+            `sender_license` VARCHAR(80) NULL,
+            `message` TEXT NULL,
+            `metadata` LONGTEXT NULL,
+            `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            KEY `idx_report_id` (`report_id`),
+            KEY `idx_sender_type` (`sender_type`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]=]):format(Config.ReportMessagesTable or 'staff_report_messages'))
 end
 
 CreateThread(function()
     ensureTables()
 end)
+
+local function safeJson(data)
+    local ok, encoded = pcall(json.encode, data or {})
+    return ok and encoded or '{}'
+end
+
+local function getActorInfo(src)
+    if not src or src == 0 then
+        return { src = 0, name = 'SYSTEM', license = 'system' }
+    end
+    local Player = QBCore.Functions.GetPlayer(src)
+    return {
+        src = src,
+        name = Player and getPlayerNameSafe(Player) or (GetPlayerName(src) or ('ID ' .. tostring(src))),
+        license = (Player and Player.PlayerData.license) or getIdentifierSafe(src, 'license') or '-'
+    }
+end
+
+local function getTargetInfo(targetSrc)
+    if not targetSrc then return { src = nil, name = nil, license = nil } end
+    local Player = QBCore.Functions.GetPlayer(targetSrc)
+    return {
+        src = tonumber(targetSrc),
+        name = Player and getPlayerNameSafe(Player) or (GetPlayerName(targetSrc) or ('ID ' .. tostring(targetSrc))),
+        license = (Player and Player.PlayerData.license) or getIdentifierSafe(targetSrc, 'license') or '-'
+    }
+end
+
+local function addLog(category, action, actorSrc, targetSrc, message, metadata)
+    local actor = getActorInfo(actorSrc)
+    local target = getTargetInfo(targetSrc)
+    local ok, err = pcall(function()
+        MySQL.insert.await(('INSERT INTO `%s` (category, action, actor_src, actor_name, actor_license, target_src, target_name, target_license, message, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'):format(Config.LogTable or 'staff_logs'), {
+            tostring(category or 'general'),
+            tostring(action or 'event'),
+            actor.src,
+            actor.name,
+            actor.license,
+            target.src,
+            target.name,
+            target.license,
+            tostring(message or ''),
+            safeJson(metadata)
+        })
+    end)
+    if not ok then
+        print('^1[mz_staffpanel] log insert error:^7', err)
+    end
+end
+
+local function addReportMessage(reportId, senderType, senderSrc, message, metadata)
+    reportId = tonumber(reportId or 0) or 0
+    if reportId <= 0 then return false end
+    local actor = getActorInfo(senderSrc or 0)
+    MySQL.insert.await(('INSERT INTO `%s` (report_id, sender_type, sender_src, sender_name, sender_license, message, metadata) VALUES (?, ?, ?, ?, ?, ?, ?)'):format(Config.ReportMessagesTable or 'staff_report_messages'), {
+        reportId,
+        tostring(senderType or 'system'),
+        actor.src,
+        actor.name,
+        actor.license,
+        tostring(message or ''),
+        safeJson(metadata)
+    })
+    addLog('report_chat', tostring(senderType or 'system'), senderSrc or 0, nil, tostring(message or ''), { reportId = reportId, metadata = metadata or {} })
+    return true
+end
+
+local function getReportById(reportId)
+    reportId = tonumber(reportId or 0) or 0
+    if reportId <= 0 then return nil end
+    local rows = MySQL.query.await(('SELECT * FROM `%s` WHERE id = ? LIMIT 1'):format(Config.ReportTable or 'staff_reports'), { reportId }) or {}
+    return rows[1]
+end
+
+local function getReportMessages(reportId)
+    reportId = tonumber(reportId or 0) or 0
+    if reportId <= 0 then return {} end
+    return MySQL.query.await(('SELECT * FROM `%s` WHERE report_id = ? ORDER BY id ASC'):format(Config.ReportMessagesTable or 'staff_report_messages'), { reportId }) or {}
+end
+
+local function canAccessReport(src, reportRow)
+    if not reportRow then return false end
+    if canOpen(src) then return true end
+    local Player = QBCore.Functions.GetPlayer(src)
+    local license = (Player and Player.PlayerData.license) or getIdentifierSafe(src, 'license') or '-'
+    return tonumber(reportRow.player_src or 0) == tonumber(src) or tostring(reportRow.player_license or '-') == tostring(license)
+end
+
+local function createReport(src, msg, origin)
+    local Player = QBCore.Functions.GetPlayer(src)
+    local reportId = MySQL.insert.await(('INSERT INTO `%s` (player_src, player_name, player_license, player_citizenid, message, status, priority) VALUES (?, ?, ?, ?, ?, ?, ?)'):format(Config.ReportTable or 'staff_reports'), {
+        src,
+        Player and getPlayerNameSafe(Player) or (GetPlayerName(src) or ('ID ' .. tostring(src))),
+        (Player and Player.PlayerData.license) or getIdentifierSafe(src, 'license') or '-',
+        Player and Player.PlayerData.citizenid or '-',
+        tostring(msg or ''),
+        'pendente',
+        'normal'
+    })
+    addLog('report', 'create', src, nil, tostring(msg or ''), { reportId = reportId, origin = origin or 'command' })
+    addReportMessage(reportId, 'player', src, tostring(msg or ''), { kind = 'initial', origin = origin or 'command' })
+    return reportId
+end
+
+local function fetchRecentLogs(limit)
+    return MySQL.query.await(('SELECT * FROM `%s` ORDER BY id DESC LIMIT %d'):format(Config.LogTable or 'staff_logs', tonumber(limit or 20) or 20)) or {}
+end
+
+local function fetchRecentReports(limit)
+    return MySQL.query.await(('SELECT * FROM `%s` ORDER BY id DESC LIMIT %d'):format(Config.ReportTable or 'staff_reports', tonumber(limit or 20) or 20)) or {}
+end
 
 QBCore.Functions.CreateCallback('mz_staffpanel:server:canOpen', function(src, cb)
     cb(canOpen(src), buildPermMap(src))
@@ -166,6 +361,13 @@ end)
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb)
     if not canOpen(src) then return cb(false) end
     local players, staffOnline = getOnlinePlayersData()
+    local totalBans = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.BanTable)) or 0
+    local totalWarns = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.WarnTable)) or 0
+    local openReports = MySQL.scalar.await(([[SELECT COUNT(*) FROM `%s` WHERE status IN ('pendente', 'em_atendimento')]]):format(Config.ReportTable or 'staff_reports')) or 0
+    local reportRows = fetchRecentReports(25)
+    local logRows = fetchRecentLogs(40)
+    local commandRows = MySQL.query.await(('SELECT * FROM `%s` WHERE category = ? ORDER BY id DESC LIMIT 10'):format(Config.LogTable or 'staff_logs'), { 'command' }) or {}
+    local banRows = MySQL.query.await(('SELECT * FROM `%s` ORDER BY id DESC LIMIT 20'):format(Config.BanTable)) or {}
     cb({
         ok = true,
         theme = Config.Theme,
@@ -173,8 +375,43 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
         perms = buildPermMap(src),
         players = players,
         vehicles = buildPermMap(src).spawnVehicle and getVehicleList() or {},
-        stats = { online = #players, staffOnline = staffOnline },
+        reports = reportRows,
+        logs = logRows,
+        recentCommands = commandRows,
+        bans = banRows,
+        stats = {
+            online = #players,
+            staffOnline = staffOnline,
+            totalBans = tonumber(totalBans) or 0,
+            totalWarns = tonumber(totalWarns) or 0,
+            openReports = tonumber(openReports) or 0
+        },
         vehiclePreviewLimit = tonumber(Config.VehiclePreviewLimit or 120) or 120
+    })
+end)
+
+QBCore.Functions.CreateCallback('mz_staffpanel:server:getSupportSession', function(src, cb, reportId)
+    reportId = tonumber(reportId or 0) or 0
+    local reportRow = nil
+
+    if reportId > 0 then
+        reportRow = getReportById(reportId)
+    else
+        local Player = QBCore.Functions.GetPlayer(src)
+        local license = (Player and Player.PlayerData.license) or getIdentifierSafe(src, 'license') or '-'
+        local rows = MySQL.query.await(('SELECT * FROM `%s` WHERE player_license = ? AND status IN (?, ?) ORDER BY id DESC LIMIT 1'):format(Config.ReportTable or 'staff_reports'), { license, 'pendente', 'em_atendimento' }) or {}
+        reportRow = rows[1]
+    end
+
+    if reportRow and not canAccessReport(src, reportRow) then
+        return cb({ ok = false, error = 'Sem acesso ao atendimento.' })
+    end
+
+    cb({
+        ok = true,
+        canManage = canOpen(src),
+        report = reportRow,
+        messages = reportRow and getReportMessages(reportRow.id) or {}
     })
 end)
 
@@ -333,22 +570,28 @@ local function handleAction(src, payload)
     local action = payload.action
     local targetPlayer = payload.target and getTarget(src, payload.target)
     if payload.target and not targetPlayer then return end
+    local function actionLog(category, message, metadata)
+        addLog(category or 'action', tostring(action or 'unknown'), src, targetPlayer and targetPlayer.PlayerData.source or nil, message, metadata or payload)
+    end
 
     if action == 'revive' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('hospital:client:Revive', targetPlayer.PlayerData.source)
         TriggerClientEvent('qb-ambulancejob:client:revive', targetPlayer.PlayerData.source)
         notify(src, ('Você reviveu ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+        actionLog('admin_action', 'Reviveu jogador.', { target = targetPlayer.PlayerData.source })
 
     elseif action == 'heal' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:healPlayer', targetPlayer and targetPlayer.PlayerData.source or src)
         notify(src, 'Heal aplicado.', 'success')
+        actionLog('admin_action', 'Aplicou heal.', { target = targetPlayer and targetPlayer.PlayerData.source or src })
 
     elseif action == 'kill' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:killPlayer', targetPlayer.PlayerData.source)
         notify(src, ('Você matou ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+        actionLog('admin_action', 'Matou jogador.', { target = targetPlayer.PlayerData.source })
 
     elseif action == 'freeze' then
         if not requireAction(src, action) then return end
@@ -356,6 +599,7 @@ local function handleAction(src, payload)
         frozenPlayers[targetPlayer.PlayerData.source] = state
         TriggerClientEvent('mz_staffpanel:client:setFrozen', targetPlayer.PlayerData.source, state)
         notify(src, (state and 'Jogador congelado.' or 'Jogador descongelado.'), 'success')
+        actionLog('admin_action', state and 'Congelou jogador.' or 'Descongelou jogador.', { target = targetPlayer.PlayerData.source, state = state })
 
     elseif action == 'gotoPlayer' then
         if not requireAction(src, action) then return end
@@ -364,6 +608,7 @@ local function handleAction(src, payload)
         local coords = GetEntityCoords(ped)
         TriggerClientEvent('mz_staffpanel:client:teleportToCoords', src, { x = coords.x, y = coords.y, z = coords.z + 1.0 })
         notify(src, ('Teleportado até ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+        actionLog('admin_action', 'Teleportou até jogador.', { target = targetPlayer.PlayerData.source })
 
     elseif action == 'bringPlayer' then
         if not requireAction(src, action) then return end
@@ -372,6 +617,7 @@ local function handleAction(src, payload)
         local coords = GetEntityCoords(ped)
         TriggerClientEvent('mz_staffpanel:client:teleportToCoords', targetPlayer.PlayerData.source, { x = coords.x, y = coords.y, z = coords.z + 1.0 })
         notify(src, ('Você trouxe ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+        actionLog('admin_action', 'Trouxe jogador.', { target = targetPlayer.PlayerData.source })
 
     elseif action == 'spectate' then
         if not requireAction(src, action) then return end
@@ -394,6 +640,7 @@ local function handleAction(src, payload)
         }
         TriggerClientEvent('mz_staffpanel:client:startSpectate', adminSrc, targetSrc)
         notify(adminSrc, ('Espectando ID %s. Use /%s para sair.'):format(targetSrc, Config.Commands.specoff), 'primary')
+        actionLog('admin_action', 'Iniciou spectate.', { target = targetSrc })
 
     elseif action == 'spectateStop' then
         if not requireAction(src, 'spectate') then return end
@@ -404,6 +651,7 @@ local function handleAction(src, payload)
         local reason = tostring(payload.reason or 'Removido pela staff')
         QBCore.Functions.Kick(targetPlayer.PlayerData.source, reason, nil, nil)
         notify(src, ('Você kickou ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+        actionLog('admin_action', reason, { target = targetPlayer.PlayerData.source })
 
     elseif action == 'kickall' then
         if not requireAction(src, action) then return end
@@ -411,6 +659,7 @@ local function handleAction(src, payload)
         for _, pid in ipairs(GetPlayers()) do
             DropPlayer(pid, reason)
         end
+        actionLog('admin_action', reason, { scope = 'all' })
 
     elseif action == 'ban' then
         if not requireAction(src, action) then return end
@@ -419,6 +668,7 @@ local function handleAction(src, payload)
         local ok, err = pcall(banPlayerByAdmin, src, targetPlayer.PlayerData.source, seconds, reason)
         if ok then
             notify(src, ('Você baniu ID %s.'):format(targetPlayer.PlayerData.source), 'success')
+            actionLog('ban', reason, { target = targetPlayer.PlayerData.source, seconds = seconds })
         else
             notify(src, 'Falha ao banir. Verifique a tabela bans.', 'error')
             print('^1[mz_staffpanel] ban error:^7', err)
@@ -431,6 +681,7 @@ local function handleAction(src, payload)
         if ok then
             TriggerClientEvent('chat:addMessage', targetPlayer.PlayerData.source, { args = { 'SYSTEM', ('Você recebeu um warn de %s. Motivo: %s'):format(GetPlayerName(src), reason) }, color = {255, 0, 0} })
             notify(src, ('Warn aplicado: %s'):format(warnIdOrError), 'success')
+            actionLog('warn', reason, { target = targetPlayer.PlayerData.source, warnId = warnIdOrError })
         else
             notify(src, warnIdOrError or 'Falha ao aplicar warn. Verifique a tabela player_warns.', 'error')
             print('^1[mz_staffpanel] warn error:^7', warnIdOrError)
@@ -439,26 +690,32 @@ local function handleAction(src, payload)
     elseif action == 'noclip' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleNoClip', src)
+        actionLog('admin_action', 'Alternou noclip.', {})
 
     elseif action == 'invisible' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleInvisible', src)
+        actionLog('admin_action', 'Alternou invisibilidade.', {})
 
     elseif action == 'god' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleGod', src)
+        actionLog('admin_action', 'Alternou godmode.', {})
 
     elseif action == 'names' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleNames', src)
+        actionLog('admin_action', 'Alternou nomes.', {})
 
     elseif action == 'blips' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleBlips', src)
+        actionLog('admin_action', 'Alternou blips.', {})
 
     elseif action == 'wall' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:toggleWall', src)
+        actionLog('admin_action', 'Alternou wall.', {})
 
     elseif action == 'coords' then
         if not requireAction(src, action) then return end
@@ -485,8 +742,10 @@ local function handleAction(src, payload)
         if QBCore.Functions.ToggleOptin then QBCore.Functions.ToggleOptin(src) end
         if QBCore.Functions.IsOptin and QBCore.Functions.IsOptin(src) then
             notify(src, 'Recebimento de reports ativado.', 'success')
+            actionLog('report', 'Ativou recebimento de reports.', {})
         else
             notify(src, 'Recebimento de reports desativado.', 'error')
+            actionLog('report', 'Desativou recebimento de reports.', {})
         end
 
     elseif action == 'announce' then
@@ -494,19 +753,48 @@ local function handleAction(src, payload)
         local msg = tostring(payload.message or '')
         if msg == '' then return notify(src, 'Digite uma mensagem.', 'error') end
         TriggerClientEvent('chat:addMessage', -1, { color = {255, 0, 0}, multiline = true, args = { 'ANÚNCIO', msg } })
+        actionLog('communication', msg, {})
 
     elseif action == 'staffchat' then
         if not requireAction(src, action) then return end
         local msg = tostring(payload.message or '')
         if msg == '' then return notify(src, 'Digite uma mensagem.', 'error') end
         broadcastToAdmins({ ('STAFF | %s'):format(GetPlayerName(src)), msg }, {255, 0, 0})
+        actionLog('communication', msg, {})
 
     elseif action == 'replyReport' then
         if not requireAction(src, 'staffchat') then return end
         local msg = tostring(payload.message or '')
         if msg == '' then return notify(src, 'Mensagem inválida.', 'error') end
-        TriggerClientEvent('chat:addMessage', targetPlayer.PlayerData.source, { color = {255, 0, 0}, multiline = true, args = { 'Admin Response', msg } })
-        notify(src, 'Resposta enviada.', 'success')
+        local reportId = tonumber(payload.reportId or 0) or 0
+        if reportId <= 0 then return notify(src, 'Report inválido.', 'error') end
+        MySQL.update.await(('UPDATE `%s` SET response = ?, status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = IFNULL(accepted_at, NOW()) WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { msg, 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
+        addReportMessage(reportId, 'admin', src, msg, { action = 'reply' })
+        notify(src, 'Resposta enviada no atendimento.', 'success')
+        actionLog('report', msg, { target = targetPlayer and targetPlayer.PlayerData.source or nil, reportId = reportId })
+
+    elseif action == 'reportAccept' then
+        if not requireAction(src, 'staffchat') then return end
+        local reportId = tonumber(payload.reportId or 0) or 0
+        if reportId <= 0 then return notify(src, 'Report inválido.', 'error') end
+        MySQL.update.await(('UPDATE `%s` SET status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = NOW() WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
+        addReportMessage(reportId, 'system', 0, ('Atendimento assumido por %s.'):format(GetPlayerName(src) or ('ID ' .. tostring(src))), { action = 'accept', admin = src })
+        notify(src, ('Report #%d assumido.'):format(reportId), 'success')
+        actionLog('report', 'Assumiu report.', { reportId = reportId })
+
+    elseif action == 'reportClose' then
+        if not requireAction(src, 'staffchat') then return end
+        local reportId = tonumber(payload.reportId or 0) or 0
+        if reportId <= 0 then return notify(src, 'Report inválido.', 'error') end
+        local status = tostring(payload.status or 'resolvido')
+        local note = tostring(payload.note or '')
+        MySQL.update.await(("UPDATE `%s` SET status = ?, closed_by_src = ?, closed_by_name = ?, closed_at = NOW(), response = CASE WHEN ? = '' THEN response ELSE ? END WHERE id = ?"):format(Config.ReportTable or "staff_reports"), { status, src, GetPlayerName(src) or ("ID " .. tostring(src)), note, note, reportId })
+        if note ~= '' then
+            addReportMessage(reportId, 'admin', src, note, { action = 'close_note', status = status })
+        end
+        addReportMessage(reportId, 'system', 0, ('Atendimento finalizado com status: %s.'):format(status), { action = 'close', status = status, note = note })
+        notify(src, ('Report #%d finalizado.'):format(reportId), 'success')
+        actionLog('report', 'Finalizou report.', { reportId = reportId, status = status, note = note })
 
     elseif action == 'setMyDimension' then
         if not requireAction(src, 'dimension') then return end
@@ -514,6 +802,7 @@ local function handleAction(src, payload)
         if bucket < 0 then bucket = 0 end
         SetPlayerRoutingBucket(src, bucket)
         notify(src, ('Sua dimensão foi alterada para %d.'):format(bucket), 'success')
+        actionLog('admin_action', 'Alterou a própria dimensão.', { bucket = bucket })
 
     elseif action == 'setDimension' then
         if not requireAction(src, 'dimension') then return end
@@ -521,6 +810,7 @@ local function handleAction(src, payload)
         if bucket < 0 then bucket = 0 end
         SetPlayerRoutingBucket(targetPlayer.PlayerData.source, bucket)
         notify(src, ('Player %d foi para dimensão %d.'):format(targetPlayer.PlayerData.source, bucket), 'success')
+        actionLog('admin_action', 'Alterou dimensão do jogador.', { target = targetPlayer.PlayerData.source, bucket = bucket })
         notify(targetPlayer.PlayerData.source, ('Você foi movido para dimensão %d.'):format(bucket), 'primary')
 
     elseif action == 'spawnVehicle' then
@@ -528,18 +818,22 @@ local function handleAction(src, payload)
         local model = tostring(payload.model or ''):lower()
         if model == '' then return notify(src, 'Modelo inválido.', 'error') end
         TriggerClientEvent('mz_staffpanel:client:spawnVehicle', src, model)
+        actionLog('vehicle', 'Spawnou veículo.', { model = model })
 
     elseif action == 'deleteVehicle' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:deleteVehicle', src)
+        actionLog('vehicle', 'Deletou veículo.', {})
 
     elseif action == 'saveVehicle' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:requestSaveVehicle', src)
+        actionLog('vehicle', 'Solicitou salvar veículo.', {})
 
     elseif action == 'maxmods' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:maxmodVehicle', src)
+        actionLog('vehicle', 'Aplicou maxmods.', {})
 
     elseif action == 'intoVehicle' then
         if not requireAction(src, action) then return end
@@ -557,6 +851,7 @@ local function handleAction(src, payload)
             if seat ~= -1 then
                 SetPedIntoVehicle(admin, vehicle, seat)
                 notify(src, 'Você entrou no veículo do player.', 'success')
+                actionLog('admin_action', 'Entrou no veículo do jogador.', { target = targetPlayer.PlayerData.source })
             else
                 notify(src, 'Sem assento livre no veículo.', 'error')
             end
@@ -568,6 +863,7 @@ local function handleAction(src, payload)
         if not requireAction(src, action) then return end
         if GetResourceState(Config.OpenInventoryResource) == 'started' then
             exports[Config.OpenInventoryResource]:OpenInventoryById(src, targetPlayer.PlayerData.source)
+            actionLog('inventory', 'Abriu inventário do jogador.', { target = targetPlayer.PlayerData.source })
         else
             notify(src, 'qb-inventory não está iniciado.', 'error')
         end
@@ -576,6 +872,7 @@ local function handleAction(src, payload)
         if not requireAction(src, 'clothing') then return end
         TriggerClientEvent(Config.ClothingEvent, targetPlayer.PlayerData.source)
         notify(src, 'Menu de roupa aberto no player.', 'success')
+        actionLog('admin_action', 'Abriu menu de roupa do jogador.', { target = targetPlayer.PlayerData.source })
 
     elseif action == 'giveWeapon' then
         if not requireAction(src, action) then return end
@@ -584,27 +881,32 @@ local function handleAction(src, payload)
         if weaponName == '' then return notify(src, 'Arma inválida.', 'error') end
         TriggerClientEvent('mz_staffpanel:client:giveWeapon', targetPlayer and targetPlayer.PlayerData.source or src, weaponName, ammo)
         notify(src, ('Arma enviada: %s'):format(weaponName), 'success')
+        actionLog('weapon', 'Enviou arma.', { target = targetPlayer and targetPlayer.PlayerData.source or src, weapon = weaponName, ammo = ammo })
 
     elseif action == 'setmodel' then
         if not requireAction(src, action) then return end
         local model = tostring(payload.model or '')
         if model == '' then return notify(src, 'Modelo inválido.', 'error') end
         TriggerClientEvent('mz_staffpanel:client:setModel', targetPlayer and targetPlayer.PlayerData.source or src, model)
+        actionLog('dev', 'Alterou model.', { target = targetPlayer and targetPlayer.PlayerData.source or src, model = model })
 
     elseif action == 'setspeed' then
         if not requireAction(src, action) then return end
         local speed = tostring(payload.speed or 'normal')
         TriggerClientEvent('mz_staffpanel:client:setSpeed', targetPlayer and targetPlayer.PlayerData.source or src, speed)
+        actionLog('dev', 'Alterou velocidade.', { target = targetPlayer and targetPlayer.PlayerData.source or src, speed = speed })
 
     elseif action == 'setammo' then
         if not requireAction(src, action) then return end
         local amount = tonumber(payload.amount or 0)
         if not amount then return notify(src, 'Quantidade inválida.', 'error') end
         TriggerClientEvent('mz_staffpanel:client:setAmmo', targetPlayer and targetPlayer.PlayerData.source or src, amount)
+        actionLog('weapon', 'Setou munição.', { target = targetPlayer and targetPlayer.PlayerData.source or src, amount = amount })
 
     elseif action == 'givenuifocus' then
         if not requireAction(src, action) then return end
         TriggerClientEvent('mz_staffpanel:client:giveNuiFocus', targetPlayer and targetPlayer.PlayerData.source or src, payload.focus == true, payload.mouse == true)
+        actionLog('dev', 'Alterou NUI focus.', { target = targetPlayer and targetPlayer.PlayerData.source or src, focus = payload.focus == true, mouse = payload.mouse == true })
     end
 end
 
@@ -644,6 +946,7 @@ RegisterNetEvent('mz_staffpanel:server:setWallState', function(state)
     local src = source
     if not requireAction(src, 'wall') then return end
     wallWatchers[src] = state == true
+    addLog('admin_action', 'wall_state', src, nil, wallWatchers[src] and 'Ativou wall.' or 'Desativou wall.', { state = wallWatchers[src] })
     if not wallWatchers[src] then
         TriggerClientEvent('mz_staffpanel:client:updateWall', src, {}, GetPlayerRoutingBucket(src) or 0)
     end
@@ -710,7 +1013,9 @@ AddEventHandler('mz_staffpanel:server:reportProxy', function(src, msg)
     msg = tostring(msg or '')
     if msg == '' then return end
     local Player = QBCore.Functions.GetPlayer(src)
-    broadcastToAdmins({ ('REPORT | %s (%d)'):format(GetPlayerName(src), src), msg }, {255, 0, 0})
+    local reportId = createReport(src, msg, 'proxy')
+    addReportMessage(reportId, 'system', 0, 'Seu chamado foi criado. Aguarde um administrador assumir o atendimento.', { action = 'created' })
+    notify(src, ('Seu chamado foi enviado para a staff. Protocolo #%d.'):format(reportId), 'success')
     if Player then
         print(('[mz_staffpanel] report %s (%s): %s'):format(GetPlayerName(src), Player.PlayerData.citizenid or '-', msg))
     end
@@ -721,10 +1026,63 @@ RegisterNetEvent('mz_staffpanel:server:sendReport', function(msg)
     local Player = QBCore.Functions.GetPlayer(src)
     msg = tostring(msg or '')
     if msg == '' then return end
-    broadcastToAdmins({ ('REPORT | %s (%d)'):format(GetPlayerName(src), src), msg }, {255, 0, 0})
+    local reportId = createReport(src, msg, 'event')
+    addReportMessage(reportId, 'system', 0, 'Seu chamado foi criado. Aguarde um administrador assumir o atendimento.', { action = 'created' })
+    notify(src, ('Seu chamado foi enviado para a staff. Protocolo #%d.'):format(reportId), 'success')
     if Player then
         print(('[mz_staffpanel] report %s (%s): %s'):format(GetPlayerName(src), Player.PlayerData.citizenid or '-', msg))
     end
+end)
+
+RegisterNetEvent('mz_staffpanel:server:supportSend', function(payload)
+    local src = source
+    payload = type(payload) == 'table' and payload or {}
+    local reportId = tonumber(payload.reportId or 0) or 0
+    local msg = tostring(payload.message or '')
+    if msg == '' then return end
+
+    local isAdmin = canOpen(src)
+    if reportId <= 0 then
+        if isAdmin then return end
+        reportId = createReport(src, msg, 'support_ui')
+        addReportMessage(reportId, 'system', 0, 'Seu chamado foi criado. Aguarde um administrador assumir o atendimento.', { action = 'created' })
+        TriggerClientEvent('QBCore:Notify', src, ('Chamado #%d criado.'):format(reportId), 'success')
+    else
+        local reportRow = getReportById(reportId)
+        if not reportRow or not canAccessReport(src, reportRow) then
+            return notify(src, 'Atendimento não encontrado.', 'error')
+        end
+
+        if isAdmin then
+            if tostring(reportRow.status or '') ~= 'em_atendimento' then
+                MySQL.update.await(('UPDATE `%s` SET status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = IFNULL(accepted_at, NOW()) WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
+            end
+            MySQL.update.await(('UPDATE `%s` SET response = ?, status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = IFNULL(accepted_at, NOW()) WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { msg, 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
+            addReportMessage(reportId, 'admin', src, msg, { action = 'reply' })
+        else
+            addReportMessage(reportId, 'player', src, msg, { action = 'reply' })
+        end
+    end
+end)
+
+RegisterNetEvent('mz_staffpanel:server:supportClose', function(payload)
+    local src = source
+    if not requireAction(src, 'staffchat') then return end
+    payload = type(payload) == 'table' and payload or {}
+    local reportId = tonumber(payload.reportId or 0) or 0
+    if reportId <= 0 then return notify(src, 'Atendimento inválido.', 'error') end
+    local status = tostring(payload.status or 'resolvido')
+    local note = tostring(payload.note or '')
+    MySQL.update.await(("UPDATE `%s` SET status = ?, closed_by_src = ?, closed_by_name = ?, closed_at = NOW(), response = CASE WHEN ? = '' THEN response ELSE ? END WHERE id = ?"):format(Config.ReportTable or 'staff_reports'), { status, src, GetPlayerName(src) or ('ID ' .. tostring(src)), note, note, reportId })
+    if note ~= '' then
+        addReportMessage(reportId, 'admin', src, note, { action = 'close_note', status = status })
+    end
+    addReportMessage(reportId, 'system', 0, ('Atendimento finalizado com status: %s.'):format(status), { action = 'close', status = status, note = note })
+    notify(src, ('Atendimento #%d finalizado.'):format(reportId), 'success')
+end)
+
+RegisterNetEvent('mz_staffpanel:server:addCustomLog', function(category, action, message, targetSrc, metadata)
+    addLog(category or 'custom', action or 'event', source or 0, tonumber(targetSrc) or nil, message or '', metadata or {})
 end)
 
 RegisterNetEvent('mz_staffpanel:server:saveVehicleData', function(props, plate)
@@ -787,6 +1145,7 @@ RegisterNetEvent('mz_staffpanel:server:saveVehicleData', function(props, plate)
 
     if ok then
         notify(src, ('Veículo %s salvo na garagem.'):format(tostring(vehicleData.model or modelName or 'desconhecido')), 'success')
+        addLog('vehicle', 'save_vehicle', src, nil, 'Salvou veículo na garagem.', { model = tostring(vehicleData.model or modelName or 'desconhecido'), plate = inputPlate })
     else
         notify(src, 'Falha ao salvar veículo. Verifique a tabela player_vehicles.', 'error')
         print('^1[mz_staffpanel] save vehicle error:^7', err)
@@ -829,9 +1188,11 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
 
     local reason = tostring(ban.reason or 'Banido')
     if expire >= 2147483647 then
+        addLog('ban', 'block_connect', 0, src, reason, { permanent = true, banId = ban.id })
         deferrals.done(('Você está banido permanentemente.\nMotivo: %s'):format(reason))
     else
         local t = os.date('*t', expire)
+        addLog('ban', 'block_connect', 0, src, reason, { permanent = false, banId = ban.id, expire = expire })
         deferrals.done(('Você está banido.\nMotivo: %s\nExpira em: %02d/%02d/%04d %02d:%02d'):format(reason, t.day, t.month, t.year, t.hour, t.min))
     end
 end)
@@ -854,7 +1215,15 @@ MZ_STAFFPANEL.HandleAction = handleAction
 MZ_STAFFPANEL.GetTarget = getTarget
 MZ_STAFFPANEL.CheckWarns = checkWarns
 MZ_STAFFPANEL.DeleteWarn = deleteWarn
+MZ_STAFFPANEL.AddLog = addLog
+MZ_STAFFPANEL.CreateReport = createReport
+MZ_STAFFPANEL.GetReportById = getReportById
+MZ_STAFFPANEL.GetReportMessages = getReportMessages
+MZ_STAFFPANEL.AddReportMessage = addReportMessage
 MZ_STAFFPANEL.RegisterQbCommand = function(commandName, help, arguments, argsrequired, handler, permission)
     if not commandName or commandName == '' then return end
-    QBCore.Commands.Add(commandName, help, arguments or {}, argsrequired == true, handler, permission or Config.MenuAccess)
+    QBCore.Commands.Add(commandName, help, arguments or {}, argsrequired == true, function(source, args, rawCommand)
+        addLog('command', commandName, source, nil, rawCommand or commandName, { args = args or {} })
+        handler(source, args, rawCommand)
+    end, permission or Config.MenuAccess)
 end

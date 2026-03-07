@@ -1,8 +1,13 @@
 local QBCore = exports['qb-core']:GetCoreObject()
 local P = MZ_STAFFPANEL
 
-QBCore.Commands.Add(Config.Commands.report, 'Enviar report para a staff', {{name='mensagem', help='Sua mensagem'}}, true, function(source, args)
+QBCore.Commands.Add(Config.Commands.report, 'Enviar report para a staff', {{name='mensagem', help='Sua mensagem'}}, true, function(source, args, rawCommand)
+    P.AddLog('command', Config.Commands.report, source, nil, rawCommand or table.concat(args, ' '), { args = args })
     TriggerEvent('mz_staffpanel:server:reportProxy', source, table.concat(args, ' '))
+end, 'user')
+
+QBCore.Commands.Add('adm', 'Abrir chamado para a staff', {}, false, function(source)
+    TriggerClientEvent('mz_staffpanel:client:openSupportChat', source, { role = 'player' })
 end, 'user')
 
 P.RegisterQbCommand(Config.Commands.reportr, 'Responder report de um jogador', {{name='id', help='ID do jogador'}, {name='mensagem', help='Resposta'}}, true, function(source, args)

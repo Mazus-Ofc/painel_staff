@@ -29,10 +29,23 @@ local function setUI(state)
     end
 end
 
+local function openSupportChat(reportId)
+    uiOpen = true
+    SetNuiFocus(true, true)
+    sendUI('visible', true)
+    sendUI('supportOnly', true)
+    sendUI('supportOpen', { reportId = tonumber(reportId or 0) or 0, role = 'player' })
+end
+
 RegisterNetEvent('mz_staffpanel:client:open', function()
     QBCore.Functions.TriggerCallback('mz_staffpanel:server:canOpen', function(canOpen)
         if canOpen then setUI(true) end
     end)
+end)
+
+RegisterNetEvent('mz_staffpanel:client:openSupportChat', function(payload)
+    payload = type(payload) == 'table' and payload or {}
+    openSupportChat(payload.reportId or 0)
 end)
 
 RegisterNUICallback('close', function(_, cb) setUI(false) cb('ok') end)
@@ -43,6 +56,19 @@ RegisterNUICallback('refresh', function(_, cb)
     end)
 end)
 RegisterNUICallback('action', function(data, cb) TriggerServerEvent('mz_staffpanel:server:performAction', data) cb('ok') end)
+RegisterNUICallback('supportFetch', function(data, cb)
+    QBCore.Functions.TriggerCallback('mz_staffpanel:server:getSupportSession', function(session)
+        cb(session or { ok = false })
+    end, tonumber((data or {}).reportId or 0) or 0)
+end)
+RegisterNUICallback('supportSend', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:supportSend', data or {})
+    cb({ ok = true })
+end)
+RegisterNUICallback('supportCloseReport', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:supportClose', data or {})
+    cb({ ok = true })
+end)
 
 RegisterNetEvent('mz_staffpanel:client:teleportToCoords', function(coords)
     SetEntityCoords(PlayerPedId(), coords.x + 0.0, coords.y + 0.0, coords.z + 0.0, false, false, false, false)

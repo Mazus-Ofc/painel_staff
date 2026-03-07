@@ -21,9 +21,11 @@
 
             <button class="nav active" data-tab="dashboard">Dashboard</button>
             <button class="nav" data-tab="players">Jogadores</button>
-            <button class="nav" data-tab="actions">Staff</button>
+            <button class="nav" data-tab="reports">Chamados</button>
+            <button class="nav" data-tab="logs">Logs</button>
+            <button class="nav" data-tab="actions">Ações rápidas</button>
             <button class="nav" data-tab="vehicles">Veículos</button>
-            <button class="nav" data-tab="punishments">Punições</button>
+            <button class="nav" data-tab="communications">Comunicação</button>
             <button class="nav" data-tab="dev">Dev</button>
             <button class="nav" data-tab="commands">Comandos</button>
           </aside>
@@ -32,7 +34,7 @@
             <header class="topbar">
               <div>
                 <h1>Painel da Staff</h1>
-                <p>Administração da Cidade Maravilhosa</p>
+                <p>Controle de bans, chamados, advertências e auditoria completa</p>
               </div>
               <div class="top-actions">
                 <button id="refreshBtn" class="btn ghost">Atualizar</button>
@@ -41,19 +43,37 @@
             </header>
 
             <section id="tab-dashboard" class="tab active">
-              <div class="grid stats">
-                <article class="card stat-card"><span>Online</span><strong id="statOnline">0</strong></article>
+              <div class="grid stats stats-5">
+                <article class="card stat-card"><span>Jogadores online</span><strong id="statOnline">0</strong></article>
                 <article class="card stat-card"><span>Seu ID</span><strong id="statMe">0</strong></article>
                 <article class="card stat-card"><span>Staff online</span><strong id="statStaff">0</strong></article>
+                <article class="card stat-card"><span>Chamados ativos</span><strong id="statReports">0</strong></article>
+                <article class="card stat-card"><span>Total bans</span><strong id="statBans">0</strong></article>
               </div>
-              <div class="card">
-                <h3>Seu acesso</h3>
-                <div id="permPills" class="pill-wrap"></div>
+              <div class="grid dash-grid">
+                <article class="card">
+                  <div class="section-head"><h3>Seu acesso</h3></div>
+                  <div id="permPills" class="pill-wrap"></div>
+                </article>
+                <article class="card">
+                  <div class="section-head"><h3>Comandos recentes da staff</h3></div>
+                  <div id="recentCommands" class="stack-list"></div>
+                </article>
+              </div>
+              <div class="grid dash-grid bottom-grid">
+                <article class="card">
+                  <div class="section-head"><h3>Logs recentes</h3></div>
+                  <div id="dashboardLogs" class="stack-list tall"></div>
+                </article>
+                <article class="card">
+                  <div class="section-head"><h3>Chamados recentes</h3></div>
+                  <div id="dashboardReports" class="stack-list tall"></div>
+                </article>
               </div>
             </section>
 
             <section id="tab-players" class="tab">
-              <div class="card">
+              <div class="card fill-card">
                 <div class="table-head">
                   <h3>Jogadores online</h3>
                   <input id="searchInput" type="text" placeholder="Buscar por nome, id, citizenid..." />
@@ -62,7 +82,7 @@
                   <table>
                     <thead>
                       <tr>
-                        <th>ID</th><th>Nome</th><th>Job</th><th>Gang</th><th>Staff</th><th>Ping</th><th></th>
+                        <th>ID</th><th>Nome</th><th>Job</th><th>Gang</th><th>Ping</th><th>Bucket</th><th></th>
                       </tr>
                     </thead>
                     <tbody id="playerRows"></tbody>
@@ -71,12 +91,32 @@
               </div>
             </section>
 
+            <section id="tab-reports" class="tab">
+              <div class="card fill-card">
+                <div class="table-head">
+                  <h3>Chamados / Reports</h3>
+                  <input id="reportSearchInput" type="text" placeholder="Buscar por jogador, id, status, mensagem..." />
+                </div>
+                <div id="reportList" class="stack-list tall"></div>
+              </div>
+            </section>
+
+            <section id="tab-logs" class="tab">
+              <div class="card fill-card">
+                <div class="table-head">
+                  <h3>Logs completos</h3>
+                  <input id="logSearchInput" type="text" placeholder="Buscar em logs, ações, ator, alvo..." />
+                </div>
+                <div id="logList" class="stack-list tall"></div>
+              </div>
+            </section>
+
             <section id="tab-actions" class="tab">
               <div class="grid actions-grid" id="quickActions"></div>
             </section>
 
             <section id="tab-vehicles" class="tab">
-              <div class="card">
+              <div class="card fill-card">
                 <div class="table-head">
                   <h3>Gerar veículos</h3>
                   <input id="vehicleSearchInput" type="text" placeholder="Buscar por nome, spawn, marca, categoria..." />
@@ -85,7 +125,7 @@
               </div>
             </section>
 
-            <section id="tab-punishments" class="tab">
+            <section id="tab-communications" class="tab">
               <div class="grid two-col">
                 <div class="card form-card">
                   <h3>Anúncio global</h3>
@@ -105,6 +145,7 @@
                 <div class="card form-card">
                   <h3>Resposta de report</h3>
                   <input id="reportReplyId" type="number" placeholder="ID do jogador" />
+                  <input id="reportReplyTicket" type="number" placeholder="ID do chamado (opcional)" />
                   <textarea id="reportReplyMessage" placeholder="Mensagem da resposta..."></textarea>
                   <button id="sendReportReply" class="btn">Responder report</button>
                 </div>
@@ -144,12 +185,71 @@
             </section>
 
             <section id="tab-commands" class="tab">
-              <div class="card">
-                <h3>Comandos usuais</h3>
-                <div class="command-list" id="commandList"></div>
+              <div class="card commands-card fixed">
+                <div class="table-head commands-head">
+                  <div>
+                    <h3>Comandos usuais</h3>
+                    <small>Lista organizada com pesquisa e visualização completa</small>
+                  </div>
+                  <div class="commands-tools">
+                    <input id="commandSearchInput" type="text" placeholder="Buscar por comando ou descrição..." />
+                    <button id="toggleCommandsBtn" class="btn ghost">Ver todos</button>
+                  </div>
+                </div>
+                <div class="command-list-wrap compact" id="commandListWrap">
+                  <div class="command-list" id="commandList"></div>
+                </div>
               </div>
             </section>
           </main>
+        </div>
+      </div>
+
+
+      <div id="supportModal" class="modal hidden">
+        <div class="modal-card support-card">
+          <div class="modal-head">
+            <div>
+              <h3 id="supportTitle">Atendimento</h3>
+              <small id="supportSubtitle">Converse com a staff</small>
+            </div>
+            <div class="row-actions left">
+              <button id="supportGotoBtn" class="btn ghost hidden">Ir até o jogador</button>
+              <button id="closeSupportModal" class="btn ghost">Fechar</button>
+            </div>
+          </div>
+          <div id="supportInfoBar" class="support-info"></div>
+          <div id="supportMessages" class="support-messages"></div>
+          <div class="support-compose">
+            <textarea id="supportMessageInput" placeholder="Digite sua mensagem..."></textarea>
+            <div class="support-actions-row">
+              <select id="supportCloseStatus">
+                <option value="resolvido">Resolvido</option>
+                <option value="rejeitado">Rejeitado</option>
+                <option value="pendente">Pendente</option>
+              </select>
+              <input id="supportCloseNote" type="text" placeholder="Observação final (opcional)" />
+              <button id="supportCloseBtn" class="btn danger hidden">Finalizar</button>
+              <button id="supportSendBtn" class="btn">Enviar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="playerModal" class="modal hidden">
+        <div class="modal-card">
+          <div class="modal-head">
+            <div>
+              <h3 id="playerModalTitle">Detalhes do jogador</h3>
+              <small id="playerModalSubtitle">-</small>
+            </div>
+            <button id="closePlayerModal" class="btn ghost">Fechar</button>
+          </div>
+          <div id="playerDetailGrid" class="detail-grid"></div>
+          <div>
+            <h4>Ações</h4>
+            <div id="playerDetailActions" class="row-actions left"></div>
+          </div>
         </div>
       </div>
     </div>
