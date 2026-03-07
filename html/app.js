@@ -39,6 +39,9 @@ const supportCloseBtn = document.getElementById('supportCloseBtn')
 const supportCloseStatus = document.getElementById('supportCloseStatus')
 const supportCloseNote = document.getElementById('supportCloseNote')
 const supportGotoBtn = document.getElementById('supportGotoBtn')
+const playerStaffRolePicker = document.getElementById('playerStaffRolePicker')
+const playerStaffRoleToggle = document.getElementById('playerStaffRoleToggle')
+const playerStaffRoleMenu = document.getElementById('playerStaffRoleMenu')
 
 let state = { players: [], perms: {}, vehicles: [], stats: {}, logs: [], reports: [], recentCommands: [], bans: [] }
 let selectedPlayer = null
@@ -236,6 +239,48 @@ function openPlayerModal(playerId) {
 
 
 
+function renderStaffRoleDropdown(items = []) {
+  const select = document.getElementById('playerStaffRoleSelect')
+  if (!select || !playerStaffRoleMenu || !playerStaffRoleToggle) return
+  const ordered = [...items].sort((a, b) => Number(a.level || 0) - Number(b.level || 0) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+  select.innerHTML = ordered.map(item => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)} • nível ${escapeHtml(item.level)}</option>`).join('') || '<option value="">Sem cargos disponíveis</option>'
+  playerStaffRoleMenu.innerHTML = ordered.map((item, index) => `
+    <button type="button" class="staff-role-option ${index === 0 ? 'active' : ''}" data-value="${escapeHtml(item.name)}">
+      <strong>${escapeHtml(item.name)}</strong>
+      <span>Nível ${escapeHtml(item.level)}</span>
+    </button>
+  `).join('') || '<div class="vehicle-empty">Sem cargos disponíveis</div>'
+  const firstValue = ordered[0]?.name || ''
+  select.value = firstValue
+  playerStaffRoleToggle.textContent = firstValue ? `${firstValue} • nível ${ordered[0].level}` : 'Sem cargos disponíveis'
+  playerStaffRoleMenu.querySelectorAll('.staff-role-option').forEach(btn => btn.addEventListener('click', () => {
+    const value = btn.dataset.value || ''
+    select.value = value
+    const found = ordered.find(item => String(item.name) === String(value))
+    playerStaffRoleToggle.textContent = found ? `${found.name} • nível ${found.level}` : 'Selecione um cargo'
+    playerStaffRoleMenu.querySelectorAll('.staff-role-option').forEach(opt => opt.classList.toggle('active', opt === btn))
+    playerStaffRolePicker?.classList.remove('open')
+    playerStaffRoleMenu.classList.add('hidden')
+  }))
+}
+
+function bindStaffRolePicker() {
+  playerStaffRoleToggle?.addEventListener('click', (e) => {
+    e.stopPropagation()
+    if (!playerStaffRoleMenu) return
+    const hasOptions = !!playerStaffRoleMenu.children.length
+    if (!hasOptions) return
+    playerStaffRolePicker?.classList.toggle('open')
+    playerStaffRoleMenu.classList.toggle('hidden')
+  })
+  document.addEventListener('click', (e) => {
+    if (!playerStaffRolePicker?.contains(e.target)) {
+      playerStaffRolePicker?.classList.remove('open')
+      playerStaffRoleMenu?.classList.add('hidden')
+    }
+  })
+}
+
 async function loadPlayerStaffManager(playerId) {
   const managerWrap = document.getElementById('playerStaffManager')
   if (!managerWrap) return
@@ -251,6 +296,8 @@ async function loadPlayerStaffManager(playerId) {
   if (!resp?.ok) {
     currentWrap.innerHTML = `<span class="tag rejeitado">${escapeHtml(resp?.error || 'Falha ao carregar cargos.')}</span>`
     if (select) select.innerHTML = '<option value="">Sem opções</option>'
+    if (playerStaffRoleToggle) playerStaffRoleToggle.textContent = 'Sem cargos disponíveis'
+    if (playerStaffRoleMenu) playerStaffRoleMenu.innerHTML = '<div class="vehicle-empty">Sem opções</div>'
     if (infoWrap) infoWrap.textContent = ''
     return
   }
@@ -260,7 +307,7 @@ async function loadPlayerStaffManager(playerId) {
     actorLevel: Number(resp.actorLevel || 0)
   }
   currentWrap.innerHTML = (playerStaffState.currentRoles.length ? playerStaffState.currentRoles : ['sem cargo']).map(role => `<span class="pill">${escapeHtml(role)}</span>`).join('')
-  select.innerHTML = (playerStaffState.assignableRoles || []).map(item => `<option value="${escapeHtml(item.name)}">${escapeHtml(item.name)} • nível ${escapeHtml(item.level)}</option>`).join('') || '<option value="">Sem cargos disponíveis</option>'
+  renderStaffRoleDropdown(playerStaffState.assignableRoles || [])
   if (infoWrap) {
     infoWrap.textContent = `Você pode definir cargos até o seu nível de gestão. Opções disponíveis: ${(playerStaffState.assignableRoles || []).map(item => item.name).join(', ') || 'nenhuma'}.`
   }
@@ -557,3 +604,4 @@ window.addEventListener('message', (event) => {
 })
 
 bindForms()
+bindStaffRolePicker()

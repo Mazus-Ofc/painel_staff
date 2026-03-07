@@ -257,7 +257,11 @@
             </div>
             <div id="playerStaffCurrent" class="pill-wrap"></div>
             <div class="staff-manage-grid">
-              <select id="playerStaffRoleSelect"></select>
+              <div class="staff-role-picker" id="playerStaffRolePicker">
+                <select id="playerStaffRoleSelect" class="hidden-native-select"></select>
+                <button type="button" id="playerStaffRoleToggle" class="staff-role-toggle">Selecione um cargo</button>
+                <div id="playerStaffRoleMenu" class="staff-role-menu hidden"></div>
+              </div>
               <input id="playerStaffNote" type="text" placeholder="Observação do log (opcional)" />
             </div>
             <div class="row-actions left">

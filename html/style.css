@@ -937,3 +937,20 @@ small {
 .mini-help{margin-top:10px;color:var(--muted);font-size:12px;line-height:1.5}
 .compact-head{margin-bottom:10px}
 @media (max-width: 900px){.staff-manage-grid{grid-template-columns:1fr}}
+
+.staff-manage-grid{align-items:end}
+.staff-role-picker{position:relative;min-width:0}
+.hidden-native-select{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.staff-role-toggle{width:100%;height:46px;border-radius:12px;border:1px solid rgba(139,92,246,.32);background:linear-gradient(180deg, rgba(139,92,246,.18), rgba(79,70,229,.12));color:#ffffff;font-weight:800;text-align:left;padding:0 42px 0 14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03)}
+.staff-role-toggle::after{content:"";position:absolute;right:14px;top:50%;width:10px;height:10px;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.staff-role-picker.open .staff-role-toggle{border-color:rgba(168,85,247,.68);box-shadow:0 0 0 3px rgba(139,92,246,.14), inset 0 0 0 1px rgba(255,255,255,.04)}
+.staff-role-picker.open .staff-role-toggle::after{transform:translateY(-30%) rotate(-135deg)}
+.staff-role-menu{position:absolute;left:0;right:0;bottom:calc(100% + 8px);max-height:240px;overflow:auto;border-radius:14px;border:1px solid rgba(139,92,246,.34);background:linear-gradient(180deg, rgba(21,16,36,.98), rgba(11,9,20,.98));box-shadow:0 16px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(139,92,246,.08);padding:8px;z-index:60}
+.staff-role-menu.hidden{display:none}
+.staff-role-option{width:100%;border:1px solid transparent;background:rgba(139,92,246,.08);color:#fff;border-radius:12px;padding:12px 12px;margin-bottom:6px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:800;cursor:pointer}
+.staff-role-option:last-child{margin-bottom:0}
+.staff-role-option span{color:#ddd6fe;font-weight:700;font-size:12px}
+.staff-role-option:hover,.staff-role-option.active{background:rgba(139,92,246,.2);border-color:rgba(168,85,247,.45)}
+.staff-role-menu::-webkit-scrollbar{width:8px}
+.staff-role-menu::-webkit-scrollbar-thumb{background:rgba(139,92,246,.52);border-radius:999px}
+.staff-role-menu::-webkit-scrollbar-track{background:rgba(139,92,246,.08);border-radius:999px}
