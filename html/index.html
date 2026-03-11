@@ -34,7 +34,9 @@
             <header class="topbar">
               <div>
                 <h1>Painel da Staff</h1>
-                <p>Controle de bans, chamados, advertências e auditoria completa</p>
+                <p>
+                  Controle de bans, chamados, advertências e auditoria completa
+                </p>
               </div>
               <div class="top-actions">
                 <button id="refreshBtn" class="btn ghost">Atualizar</button>
@@ -44,11 +46,23 @@
 
             <section id="tab-dashboard" class="tab active">
               <div class="grid stats stats-5">
-                <article class="card stat-card"><span>Jogadores online</span><strong id="statOnline">0</strong></article>
-                <article class="card stat-card"><span>Seu ID</span><strong id="statMe">0</strong></article>
-                <article class="card stat-card"><span>Staff online</span><strong id="statStaff">0</strong></article>
-                <article class="card stat-card"><span>Chamados ativos</span><strong id="statReports">0</strong></article>
-                <article class="card stat-card"><span>Total bans</span><strong id="statBans">0</strong></article>
+                <article class="card stat-card">
+                  <span>Jogadores online</span
+                  ><strong id="statOnline">0</strong>
+                </article>
+                <article class="card stat-card">
+                  <span>Seu ID</span><strong id="statMe">0</strong>
+                </article>
+                <article class="card stat-card">
+                  <span>Staff online</span><strong id="statStaff">0</strong>
+                </article>
+                <article class="card stat-card">
+                  <span>Chamados ativos</span
+                  ><strong id="statReports">0</strong>
+                </article>
+                <article class="card stat-card">
+                  <span>Total bans</span><strong id="statBans">0</strong>
+                </article>
               </div>
               <div class="grid dash-grid">
                 <article class="card">
@@ -56,7 +70,9 @@
                   <div id="permPills" class="pill-wrap"></div>
                 </article>
                 <article class="card">
-                  <div class="section-head"><h3>Comandos recentes da staff</h3></div>
+                  <div class="section-head">
+                    <h3>Comandos recentes da staff</h3>
+                  </div>
                   <div id="recentCommands" class="stack-list"></div>
                 </article>
               </div>
@@ -76,13 +92,23 @@
               <div class="card fill-card">
                 <div class="table-head">
                   <h3>Jogadores online</h3>
-                  <input id="searchInput" type="text" placeholder="Buscar por nome, id, citizenid..." />
+                  <input
+                    id="searchInput"
+                    type="text"
+                    placeholder="Buscar por nome, id, citizenid..."
+                  />
                 </div>
                 <div class="table-wrap">
                   <table>
                     <thead>
                       <tr>
-                        <th>ID</th><th>Nome</th><th>Job</th><th>Gang</th><th>Ping</th><th>Bucket</th><th></th>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Job</th>
+                        <th>Gang</th>
+                        <th>Ping</th>
+                        <th>Bucket</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody id="playerRows"></tbody>
@@ -95,7 +121,11 @@
               <div class="card fill-card">
                 <div class="table-head">
                   <h3>Chamados / Reports</h3>
-                  <input id="reportSearchInput" type="text" placeholder="Buscar por jogador, id, status, mensagem..." />
+                  <input
+                    id="reportSearchInput"
+                    type="text"
+                    placeholder="Buscar por jogador, id, status, mensagem..."
+                  />
                 </div>
                 <div id="reportList" class="stack-list tall"></div>
               </div>
@@ -105,7 +135,11 @@
               <div class="card fill-card">
                 <div class="table-head">
                   <h3>Logs completos</h3>
-                  <input id="logSearchInput" type="text" placeholder="Buscar em logs, ações, ator, alvo..." />
+                  <input
+                    id="logSearchInput"
+                    type="text"
+                    placeholder="Buscar em logs, ações, ator, alvo..."
+                  />
                 </div>
                 <div id="logList" class="stack-list tall"></div>
               </div>
@@ -119,7 +153,11 @@
               <div class="card fill-card">
                 <div class="table-head">
                   <h3>Gerar veículos</h3>
-                  <input id="vehicleSearchInput" type="text" placeholder="Buscar por nome, spawn, marca, categoria..." />
+                  <input
+                    id="vehicleSearchInput"
+                    type="text"
+                    placeholder="Buscar por nome, spawn, marca, categoria..."
+                  />
                 </div>
                 <div id="vehicleGrid" class="vehicle-grid"></div>
               </div>
@@ -129,25 +167,51 @@
               <div class="grid two-col">
                 <div class="card form-card">
                   <h3>Anúncio global</h3>
-                  <textarea id="announceMessage" placeholder="Digite a mensagem do anúncio..."></textarea>
+                  <textarea
+                    id="announceMessage"
+                    placeholder="Digite a mensagem do anúncio..."
+                  ></textarea>
                   <button id="sendAnnounce" class="btn">Enviar anúncio</button>
                 </div>
                 <div class="card form-card">
                   <h3>Staffchat</h3>
-                  <textarea id="staffchatMessage" placeholder="Mensagem para a staff..."></textarea>
-                  <button id="sendStaffchat" class="btn">Enviar staffchat</button>
+                  <textarea
+                    id="staffchatMessage"
+                    placeholder="Mensagem para a staff..."
+                  ></textarea>
+                  <button id="sendStaffchat" class="btn">
+                    Enviar staffchat
+                  </button>
                 </div>
                 <div class="card form-card">
                   <h3>Kick all</h3>
-                  <textarea id="kickallReason" placeholder="Motivo do kick all..."></textarea>
-                  <button id="sendKickall" class="btn danger">Kickar todos</button>
+                  <textarea
+                    id="kickallReason"
+                    placeholder="Motivo do kick all..."
+                  ></textarea>
+                  <button id="sendKickall" class="btn danger">
+                    Kickar todos
+                  </button>
                 </div>
                 <div class="card form-card">
                   <h3>Resposta de report</h3>
-                  <input id="reportReplyId" type="number" placeholder="ID do jogador" />
-                  <input id="reportReplyTicket" type="number" placeholder="ID do chamado (opcional)" />
-                  <textarea id="reportReplyMessage" placeholder="Mensagem da resposta..."></textarea>
-                  <button id="sendReportReply" class="btn">Responder report</button>
+                  <input
+                    id="reportReplyId"
+                    type="number"
+                    placeholder="ID do jogador"
+                  />
+                  <input
+                    id="reportReplyTicket"
+                    type="number"
+                    placeholder="ID do chamado (opcional)"
+                  />
+                  <textarea
+                    id="reportReplyMessage"
+                    placeholder="Mensagem da resposta..."
+                  ></textarea>
+                  <button id="sendReportReply" class="btn">
+                    Responder report
+                  </button>
                 </div>
               </div>
             </section>
@@ -156,28 +220,64 @@
               <div class="grid two-col">
                 <div class="card form-card">
                   <h3>Modelo</h3>
-                  <input id="setModelInput" type="text" placeholder="a_m_m_bevhills_01 ou mp_m_freemode_01" />
-                  <input id="setModelTarget" type="number" placeholder="ID opcional" />
+                  <input
+                    id="setModelInput"
+                    type="text"
+                    placeholder="a_m_m_bevhills_01 ou mp_m_freemode_01"
+                  />
+                  <input
+                    id="setModelTarget"
+                    type="number"
+                    placeholder="ID opcional"
+                  />
                   <button id="sendSetModel" class="btn">Aplicar modelo</button>
                 </div>
                 <div class="card form-card">
                   <h3>Velocidade</h3>
-                  <input id="setSpeedInput" type="text" placeholder="fast ou normal" />
-                  <input id="setSpeedTarget" type="number" placeholder="ID opcional" />
-                  <button id="sendSetSpeed" class="btn">Aplicar velocidade</button>
+                  <input
+                    id="setSpeedInput"
+                    type="text"
+                    placeholder="fast ou normal"
+                  />
+                  <input
+                    id="setSpeedTarget"
+                    type="number"
+                    placeholder="ID opcional"
+                  />
+                  <button id="sendSetSpeed" class="btn">
+                    Aplicar velocidade
+                  </button>
                 </div>
                 <div class="card form-card">
                   <h3>Munição</h3>
-                  <input id="setAmmoInput" type="number" placeholder="Quantidade" />
-                  <input id="setAmmoTarget" type="number" placeholder="ID opcional" />
+                  <input
+                    id="setAmmoInput"
+                    type="number"
+                    placeholder="Quantidade"
+                  />
+                  <input
+                    id="setAmmoTarget"
+                    type="number"
+                    placeholder="ID opcional"
+                  />
                   <button id="sendSetAmmo" class="btn">Aplicar munição</button>
                 </div>
                 <div class="card form-card">
                   <h3>NUI Focus</h3>
-                  <input id="nuiFocusTarget" type="number" placeholder="ID do jogador" />
+                  <input
+                    id="nuiFocusTarget"
+                    type="number"
+                    placeholder="ID do jogador"
+                  />
                   <div class="inline-checks">
-                    <label><input id="nuiFocusFlag" type="checkbox" checked /> Focus</label>
-                    <label><input id="nuiMouseFlag" type="checkbox" checked /> Mouse</label>
+                    <label
+                      ><input id="nuiFocusFlag" type="checkbox" checked />
+                      Focus</label
+                    >
+                    <label
+                      ><input id="nuiMouseFlag" type="checkbox" checked />
+                      Mouse</label
+                    >
                   </div>
                   <button id="sendNuiFocus" class="btn">Aplicar focus</button>
                 </div>
@@ -189,11 +289,20 @@
                 <div class="table-head commands-head">
                   <div>
                     <h3>Comandos usuais</h3>
-                    <small>Lista organizada com pesquisa e visualização completa</small>
+                    <small
+                      >Lista organizada com pesquisa e visualização
+                      completa</small
+                    >
                   </div>
                   <div class="commands-tools">
-                    <input id="commandSearchInput" type="text" placeholder="Buscar por comando ou descrição..." />
-                    <button id="toggleCommandsBtn" class="btn ghost">Ver todos</button>
+                    <input
+                      id="commandSearchInput"
+                      type="text"
+                      placeholder="Buscar por comando ou descrição..."
+                    />
+                    <button id="toggleCommandsBtn" class="btn ghost">
+                      Ver todos
+                    </button>
                   </div>
                 </div>
                 <div class="command-list-wrap compact" id="commandListWrap">
@@ -205,7 +314,6 @@
         </div>
       </div>
 
-
       <div id="supportModal" class="modal hidden">
         <div class="modal-card support-card">
           <div class="modal-head">
@@ -214,22 +322,33 @@
               <small id="supportSubtitle">Converse com a staff</small>
             </div>
             <div class="row-actions left">
-              <button id="supportGotoBtn" class="btn ghost hidden">Ir até o jogador</button>
+              <button id="supportGotoBtn" class="btn ghost hidden">
+                Ir até o jogador
+              </button>
               <button id="closeSupportModal" class="btn ghost">Fechar</button>
             </div>
           </div>
           <div id="supportInfoBar" class="support-info"></div>
           <div id="supportMessages" class="support-messages"></div>
           <div class="support-compose">
-            <textarea id="supportMessageInput" placeholder="Digite sua mensagem..."></textarea>
+            <textarea
+              id="supportMessageInput"
+              placeholder="Digite sua mensagem..."
+            ></textarea>
             <div class="support-actions-row">
               <select id="supportCloseStatus">
                 <option value="resolvido">Resolvido</option>
                 <option value="rejeitado">Rejeitado</option>
                 <option value="pendente">Pendente</option>
               </select>
-              <input id="supportCloseNote" type="text" placeholder="Observação final (opcional)" />
-              <button id="supportCloseBtn" class="btn danger hidden">Finalizar</button>
+              <input
+                id="supportCloseNote"
+                type="text"
+                placeholder="Observação final (opcional)"
+              />
+              <button id="supportCloseBtn" class="btn danger hidden">
+                Finalizar
+              </button>
               <button id="supportSendBtn" class="btn">Enviar</button>
             </div>
           </div>
@@ -258,22 +377,45 @@
             <div id="playerStaffCurrent" class="pill-wrap"></div>
             <div class="staff-manage-grid">
               <div class="staff-role-picker" id="playerStaffRolePicker">
-                <select id="playerStaffRoleSelect" class="hidden-native-select"></select>
-                <button type="button" id="playerStaffRoleToggle" class="staff-role-toggle">Selecione um cargo</button>
-                <div id="playerStaffRoleMenu" class="staff-role-menu hidden"></div>
+                <select
+                  id="playerStaffRoleSelect"
+                  class="hidden-native-select"
+                ></select>
+                <button
+                  type="button"
+                  id="playerStaffRoleToggle"
+                  class="staff-role-toggle"
+                >
+                  Selecione um cargo
+                </button>
+                <div
+                  id="playerStaffRoleMenu"
+                  class="staff-role-menu hidden"
+                ></div>
               </div>
-              <input id="playerStaffNote" type="text" placeholder="Observação do log (opcional)" />
+              <input
+                id="playerStaffNote"
+                type="text"
+                placeholder="Observação do log (opcional)"
+              />
             </div>
             <div class="row-actions left">
               <button id="playerStaffAddBtn" class="btn">Definir cargo</button>
-              <button id="playerStaffRemoveBtn" class="btn ghost">Remover cargo</button>
-              <button id="playerStaffClearBtn" class="btn danger ghost">Desligar staff</button>
+              <button id="playerStaffRemoveBtn" class="btn ghost">
+                Remover cargo
+              </button>
+              <button id="playerStaffClearBtn" class="btn danger ghost">
+                Desligar staff
+              </button>
             </div>
             <div id="playerStaffAssignable" class="mini-help"></div>
           </div>
         </div>
       </div>
     </div>
-    <script src="app.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/renderers.js"></script>
+    <script src="js/forms.js"></script>
   </body>
 </html>
