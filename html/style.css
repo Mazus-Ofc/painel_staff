@@ -730,3 +730,32 @@ textarea {
 .staff-duty-row {
   grid-template-columns: 90px 1.2fr 1fr 1fr 1fr 1.4fr;
 }
+.staff-grid-top,
+.staff-grid-bottom {
+  grid-template-columns: 1fr 1fr;
+}
+
+.staff-summary-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.staff-duty-head,
+.staff-duty-row {
+  grid-template-columns: 90px 1.2fr 1fr 1fr 1fr 1.4fr;
+}
+
+@media (max-width: 1080px) {
+  .staff-grid-top,
+  .staff-grid-bottom,
+  .staff-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.action-modal-fields {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}

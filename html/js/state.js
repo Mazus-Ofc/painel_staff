@@ -50,6 +50,26 @@ window.AppState = {
     },
     meOnDuty: false,
     meState: null,
+    dailyStats: [],
+    recentLogs: [],
+    myToday: null,
+    totals: {
+      seconds_on_duty: 0,
+      reports_handled: 0,
+      reports_closed: 0,
+      warns_applied: 0,
+      bans_applied: 0,
+      revives_done: 0,
+      teleports_done: 0,
+      spectates_done: 0,
+    },
+  },
+  actionModal: {
+    open: false,
+    action: null,
+    playerId: null,
+    playerName: "",
+    values: {},
   },
 };
 
@@ -233,5 +253,40 @@ window.setStaffDutyData = function (data) {
     },
     meOnDuty: data.meOnDuty === true,
     meState: data.meState || null,
+    dailyStats: data.dailyStats || [],
+    recentLogs: data.recentLogs || [],
+    myToday: data.myToday || null,
+    totals: data.totals || {
+      seconds_on_duty: 0,
+      reports_handled: 0,
+      reports_closed: 0,
+      warns_applied: 0,
+      bans_applied: 0,
+      revives_done: 0,
+      teleports_done: 0,
+      spectates_done: 0,
+    },
+  };
+};
+window.setActionModalState = function (data) {
+  window.AppState.actionModal = Object.assign(
+    {
+      open: false,
+      action: null,
+      playerId: null,
+      playerName: "",
+      values: {},
+    },
+    data || {},
+  );
+};
+
+window.clearActionModalState = function () {
+  window.AppState.actionModal = {
+    open: false,
+    action: null,
+    playerId: null,
+    playerName: "",
+    values: {},
   };
 };

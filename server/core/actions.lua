@@ -133,6 +133,9 @@ function P.HandleAction(src, payload)
         TriggerClientEvent('qb-ambulancejob:client:revive', targetPlayer.PlayerData.source)
         P.Notify(src, ('Você reviveu ID %s.'):format(targetPlayer.PlayerData.source), 'success')
         actionLog('admin_action', 'Reviveu jogador.', { target = targetPlayer.PlayerData.source })
+        local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+        local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+        P.AddDailyStat(adminLicense, adminName, 'revives_done', 1)
 
     elseif action == 'heal' then
         if not P.RequireAction(src, action) then return end
@@ -162,6 +165,9 @@ function P.HandleAction(src, payload)
         TriggerClientEvent('mz_staffpanel:client:teleportToCoords', src, { x = coords.x, y = coords.y, z = coords.z + 1.0 })
         P.Notify(src, ('Teleportado até ID %s.'):format(targetPlayer.PlayerData.source), 'success')
         actionLog('admin_action', 'Teleportou até jogador.', { target = targetPlayer.PlayerData.source })
+        local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+        local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+        P.AddDailyStat(adminLicense, adminName, 'teleports_done', 1)
 
     elseif action == 'bringPlayer' then
         if not P.RequireAction(src, action) then return end
@@ -171,6 +177,9 @@ function P.HandleAction(src, payload)
         TriggerClientEvent('mz_staffpanel:client:teleportToCoords', targetPlayer.PlayerData.source, { x = coords.x, y = coords.y, z = coords.z + 1.0 })
         P.Notify(src, ('Você trouxe ID %s.'):format(targetPlayer.PlayerData.source), 'success')
         actionLog('admin_action', 'Trouxe jogador.', { target = targetPlayer.PlayerData.source })
+        local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+        local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+        P.AddDailyStat(adminLicense, adminName, 'teleports_done', 1)
 
     elseif action == 'spectate' then
         if not P.RequireAction(src, action) then return end
@@ -194,6 +203,9 @@ function P.HandleAction(src, payload)
         TriggerClientEvent('mz_staffpanel:client:startSpectate', adminSrc, targetSrc)
         P.Notify(adminSrc, ('Espectando ID %s. Use /%s para sair.'):format(targetSrc, Config.Commands.specoff), 'primary')
         actionLog('admin_action', 'Iniciou spectate.', { target = targetSrc })
+        local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+        local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+        P.AddDailyStat(adminLicense, adminName, 'spectates_done', 1)
 
     elseif action == 'spectateStop' then
         if not P.RequireAction(src, 'spectate') then return end
@@ -222,6 +234,9 @@ function P.HandleAction(src, payload)
         if ok then
             P.Notify(src, ('Você baniu ID %s.'):format(targetPlayer.PlayerData.source), 'success')
             actionLog('ban', reason, { target = targetPlayer.PlayerData.source, seconds = seconds })
+            local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+            local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+            P.AddDailyStat(adminLicense, adminName, 'bans_applied', 1)
         else
             P.Notify(src, 'Falha ao banir. Verifique a tabela bans.', 'error')
             print('^1[mz_staffpanel] ban error:^7', err)
@@ -235,6 +250,9 @@ function P.HandleAction(src, payload)
             TriggerClientEvent('chat:addMessage', targetPlayer.PlayerData.source, { args = { 'SYSTEM', ('Você recebeu um warn de %s. Motivo: %s'):format(GetPlayerName(src), reason) }, color = {255, 0, 0} })
             P.Notify(src, ('Warn aplicado: %s'):format(warnIdOrError), 'success')
             actionLog('warn', reason, { target = targetPlayer.PlayerData.source, warnId = warnIdOrError })
+            local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
+            local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
+            P.AddDailyStat(adminLicense, adminName, 'warns_applied', 1)
         else
             P.Notify(src, warnIdOrError or 'Falha ao aplicar warn. Verifique a tabela player_warns.', 'error')
             print('^1[mz_staffpanel] warn error:^7', warnIdOrError)

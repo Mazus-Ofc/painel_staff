@@ -103,7 +103,7 @@
           <div class="page-header">
             <div>
               <h2>Staff</h2>
-              <p>Equipe em serviço e operação atual</p>
+              <p>Equipe em serviço, produtividade e operação atual</p>
             </div>
 
             <div class="staff-top-actions">
@@ -138,11 +138,36 @@
             </div>
           </div>
 
-          <div class="panel-card">
-            <div class="panel-card-header">
-              <h3>Staff em serviço</h3>
+          <div class="panel-grid staff-grid-top">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Staff em serviço</h3>
+              </div>
+              <div id="staffDutyList" class="table-list"></div>
             </div>
-            <div id="staffDutyList" class="table-list"></div>
+
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Meu resumo hoje</h3>
+              </div>
+              <div id="staffMyToday" class="staff-summary-grid"></div>
+            </div>
+          </div>
+
+          <div class="panel-grid staff-grid-bottom">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Ranking da staff hoje</h3>
+              </div>
+              <div id="staffTodayRanking" class="list"></div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Logs recentes de serviço</h3>
+              </div>
+              <div id="staffDutyRecentLogs" class="list"></div>
+            </div>
           </div>
         </section>
 
@@ -367,6 +392,33 @@
           </button>
           <button id="staffClearBtn" class="btn btn-danger">
             Remover todos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="actionModal" class="modal hidden">
+      <div class="modal-box medium">
+        <div class="modal-header">
+          <div>
+            <h3 id="actionModalTitle">Ação</h3>
+            <p id="actionModalSubtitle">Configuração da ação</p>
+          </div>
+          <button class="icon-btn" data-close-modal="actionModal">✕</button>
+        </div>
+
+        <div id="actionModalFields" class="action-modal-fields"></div>
+
+        <div class="stack-actions">
+          <button id="actionModalConfirmBtn" class="btn btn-primary">
+            Confirmar
+          </button>
+          <button
+            id="actionModalCancelBtn"
+            class="btn btn-secondary"
+            data-close-modal="actionModal"
+          >
+            Cancelar
           </button>
         </div>
       </div>

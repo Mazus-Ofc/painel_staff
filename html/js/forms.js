@@ -23,6 +23,78 @@ function openTab(tab) {
   });
 }
 
+function openActionModal(action, player) {
+  if (!player) return;
+
+  let defaults = {};
+
+  if (action === "warn") {
+    defaults = { reason: "Aviso da staff" };
+  } else if (action === "kick") {
+    defaults = { reason: "Removido pela staff" };
+  } else if (action === "ban") {
+    defaults = { seconds: "86400", reason: "Banido pela staff" };
+  } else if (action === "setDimension") {
+    defaults = { dimension: "0" };
+  }
+
+  window.setActionModalState({
+    open: true,
+    action,
+    playerId: Number(player.id),
+    playerName: `[${player.online ? player.id : "OFF"}] ${player.name || "Jogador"}`,
+    values: defaults,
+  });
+
+  window.renderActionModal();
+  showModal("actionModal");
+}
+
+async function confirmActionModal() {
+  const state = window.AppState.actionModal || {};
+  const action = state.action;
+  const playerId = Number(state.playerId || 0);
+
+  if (!action || !playerId) return;
+
+  const payload = {
+    action,
+    target: playerId,
+  };
+
+  if (action === "warn") {
+    payload.reason =
+      document.querySelector("#actionWarnReason")?.value || "Aviso da staff";
+  }
+
+  if (action === "kick") {
+    payload.reason =
+      document.querySelector("#actionKickReason")?.value ||
+      "Removido pela staff";
+  }
+
+  if (action === "ban") {
+    payload.seconds = Number(
+      document.querySelector("#actionBanSeconds")?.value || 0,
+    );
+    payload.reason =
+      document.querySelector("#actionBanReason")?.value || "Banido pela staff";
+  }
+
+  if (action === "setDimension") {
+    payload.dimension = Number(
+      document.querySelector("#actionDimensionValue")?.value || 0,
+    );
+  }
+
+  await nui("action", payload);
+
+  hideModal("actionModal");
+  window.clearActionModalState();
+
+  setTimeout(refreshPanel, 250);
+}
+
 function showModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -41,6 +113,10 @@ function hideModal(id) {
   if (id === "playerModal") window.AppState.modals.player = false;
   if (id === "supportModal") window.AppState.modals.support = false;
   if (id === "staffManagerModal") window.AppState.modals.staffManager = false;
+
+  if (id === "actionModal") {
+    window.clearActionModalState();
+  }
 }
 
 async function refreshPanel() {
@@ -112,37 +188,24 @@ async function openStaffManager(playerId) {
 
 async function doPlayerAction(action, playerId) {
   const target = Number(playerId || 0);
+  const player = (window.AppState.players || []).find(
+    (p) => Number(p.id) === target,
+  );
+
+  if (!player || player.online === false) {
+    return;
+  }
+
+  if (
+    action === "kick" ||
+    action === "ban" ||
+    action === "warn" ||
+    action === "setDimension"
+  ) {
+    return openActionModal(action, player);
+  }
+
   const payload = { action, target };
-
-  if (action === "kick") {
-    const reason = window.prompt("Motivo do kick:", "Removido pela staff");
-    if (reason === null) return;
-    payload.reason = reason;
-  }
-
-  if (action === "ban") {
-    const seconds = window.prompt(
-      "Tempo do ban em segundos (0/permanente para permanente):",
-      "86400",
-    );
-    if (seconds === null) return;
-    const reason = window.prompt("Motivo do ban:", "Banido pela staff");
-    if (reason === null) return;
-    payload.seconds = Number(seconds || 0);
-    payload.reason = reason;
-  }
-
-  if (action === "warn") {
-    const reason = window.prompt("Motivo do warn:", "Aviso da staff");
-    if (reason === null) return;
-    payload.reason = reason;
-  }
-
-  if (action === "setDimension") {
-    const bucket = window.prompt("Dimensão/Bucket:", "0");
-    if (bucket === null) return;
-    payload.dimension = Number(bucket || 0);
-  }
 
   await nui("action", payload);
   setTimeout(refreshPanel, 250);
@@ -321,6 +384,9 @@ function bindStaticEvents() {
       }
     });
   });
+  document
+    .querySelector("#actionModalConfirmBtn")
+    ?.addEventListener("click", confirmActionModal);
   document
     .querySelector("#staffRefreshBtn")
     ?.addEventListener("click", refreshStaffDuty);

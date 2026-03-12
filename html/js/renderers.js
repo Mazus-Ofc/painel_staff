@@ -441,11 +441,17 @@ function secondsToReadable(value) {
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
+function numberOrZero(value) {
+  return Number(value || 0);
+}
 
 function renderStaffDuty() {
   const duty = window.AppState.staffDuty || {};
   const rows = duty.rows || [];
   const stats = duty.stats || {};
+  const ranking = duty.dailyStats || [];
+  const recentLogs = duty.recentLogs || [];
+  const myToday = duty.myToday || {};
 
   const totalEl = document.querySelector("#staff-duty-total");
   const busyEl = document.querySelector("#staff-duty-busy");
@@ -466,36 +472,152 @@ function renderStaffDuty() {
   }
 
   const list = document.querySelector("#staffDutyList");
-  if (!list) return;
-
-  list.innerHTML = rows.length
-    ? `
-    <div class="table-head staff-duty-head">
-      <span>ID</span>
-      <span>Nome</span>
-      <span>Cargo</span>
-      <span>Status</span>
-      <span>Tempo em serviço</span>
-      <span>Licença</span>
-    </div>
-    ${rows
-      .map(
-        (row) => `
-      <div class="table-row staff-duty-row">
-        <span>${Number(row.src || 0)}</span>
-        <span>${escapeHtml(row.name || "-")}</span>
-        <span>${escapeHtml(row.role || "-")}</span>
-        <span><span class="badge">${escapeHtml(row.status || "livre")}</span></span>
-        <span>${secondsToReadable(row.secondsOnDuty || 0)}</span>
-        <span>${escapeHtml(row.license || "-")}</span>
+  if (list) {
+    list.innerHTML = rows.length
+      ? `
+      <div class="table-head staff-duty-head">
+        <span>ID</span>
+        <span>Nome</span>
+        <span>Cargo</span>
+        <span>Status</span>
+        <span>Tempo em serviço</span>
+        <span>Licença</span>
       </div>
-    `,
-      )
-      .join("")}
-  `
-    : '<div class="empty">Nenhum staff em serviço no momento.</div>';
+      ${rows
+        .map(
+          (row) => `
+        <div class="table-row staff-duty-row">
+          <span>${Number(row.src || 0)}</span>
+          <span>${escapeHtml(row.name || "-")}</span>
+          <span>${escapeHtml(row.role || "-")}</span>
+          <span><span class="badge">${escapeHtml(row.status || "livre")}</span></span>
+          <span>${secondsToReadable(row.secondsOnDuty || 0)}</span>
+          <span>${escapeHtml(row.license || "-")}</span>
+        </div>
+      `,
+        )
+        .join("")}
+    `
+      : '<div class="empty">Nenhum staff em serviço no momento.</div>';
+  }
+
+  const myTodayWrap = document.querySelector("#staffMyToday");
+  if (myTodayWrap) {
+    myTodayWrap.innerHTML = `
+      <div class="info-box"><span>Tempo em serviço</span><strong>${secondsToReadable(myToday.seconds_on_duty || 0)}</strong></div>
+      <div class="info-box"><span>Reports assumidos</span><strong>${numberOrZero(myToday.reports_handled)}</strong></div>
+      <div class="info-box"><span>Reports fechados</span><strong>${numberOrZero(myToday.reports_closed)}</strong></div>
+      <div class="info-box"><span>Warns aplicados</span><strong>${numberOrZero(myToday.warns_applied)}</strong></div>
+      <div class="info-box"><span>Bans aplicados</span><strong>${numberOrZero(myToday.bans_applied)}</strong></div>
+      <div class="info-box"><span>Revives</span><strong>${numberOrZero(myToday.revives_done)}</strong></div>
+      <div class="info-box"><span>Teleports</span><strong>${numberOrZero(myToday.teleports_done)}</strong></div>
+      <div class="info-box"><span>Spectates</span><strong>${numberOrZero(myToday.spectates_done)}</strong></div>
+    `;
+  }
+
+  const rankingWrap = document.querySelector("#staffTodayRanking");
+  if (rankingWrap) {
+    rankingWrap.innerHTML = ranking.length
+      ? ranking
+          .map(
+            (row, index) => `
+        <div class="list-item static">
+          <div class="list-item-top">
+            <strong>#${index + 1} - ${escapeHtml(row.staff_name || "-")}</strong>
+            <span>${secondsToReadable(row.seconds_on_duty || 0)}</span>
+          </div>
+          <div class="list-item-bottom">
+            <span>
+              Reports fechados: ${numberOrZero(row.reports_closed)} |
+              Reports assumidos: ${numberOrZero(row.reports_handled)} |
+              Warns: ${numberOrZero(row.warns_applied)} |
+              Bans: ${numberOrZero(row.bans_applied)}
+            </span>
+          </div>
+        </div>
+      `,
+          )
+          .join("")
+      : '<div class="empty">Sem estatísticas registradas hoje.</div>';
+  }
+
+  const logsWrap = document.querySelector("#staffDutyRecentLogs");
+  if (logsWrap) {
+    logsWrap.innerHTML = recentLogs.length
+      ? recentLogs
+          .map(
+            (row) => `
+        <div class="list-item static">
+          <div class="list-item-top">
+            <strong>${escapeHtml(row.staff_name || "-")} • ${escapeHtml(row.action || "-")}</strong>
+            <span>${fmtDate(row.started_at)}</span>
+          </div>
+          <div class="list-item-bottom">
+            <span>
+              Cargo: ${escapeHtml(row.role || "-")} |
+              Status: ${escapeHtml(row.status || "-")} |
+              Duração: ${secondsToReadable(row.duration_seconds || 0)}
+            </span>
+          </div>
+        </div>
+      `,
+          )
+          .join("")
+      : '<div class="empty">Sem logs recentes de serviço.</div>';
+  }
 }
 
+function renderActionModal() {
+  const state = window.AppState.actionModal || {};
+  const fieldsWrap = document.querySelector("#actionModalFields");
+  const titleEl = document.querySelector("#actionModalTitle");
+  const subtitleEl = document.querySelector("#actionModalSubtitle");
+
+  if (!fieldsWrap || !titleEl || !subtitleEl) return;
+
+  if (!state.open) {
+    return;
+  }
+
+  const playerName = state.playerName || "Jogador";
+  subtitleEl.textContent = playerName;
+
+  let html = "";
+
+  if (state.action === "warn") {
+    titleEl.textContent = "Aplicar warn";
+    html = `
+      <label>Motivo do warn</label>
+      <textarea id="actionWarnReason" placeholder="Digite o motivo...">${escapeHtml(state.values.reason || "Aviso da staff")}</textarea>
+    `;
+  } else if (state.action === "kick") {
+    titleEl.textContent = "Kickar jogador";
+    html = `
+      <label>Motivo do kick</label>
+      <textarea id="actionKickReason" placeholder="Digite o motivo...">${escapeHtml(state.values.reason || "Removido pela staff")}</textarea>
+    `;
+  } else if (state.action === "ban") {
+    titleEl.textContent = "Banir jogador";
+    html = `
+      <label>Tempo do ban em segundos (0 = permanente)</label>
+      <input id="actionBanSeconds" class="input" type="number" min="0" value="${escapeHtml(state.values.seconds || "86400")}" />
+
+      <label>Motivo do ban</label>
+      <textarea id="actionBanReason" placeholder="Digite o motivo...">${escapeHtml(state.values.reason || "Banido pela staff")}</textarea>
+    `;
+  } else if (state.action === "setDimension") {
+    titleEl.textContent = "Alterar dimensão";
+    html = `
+      <label>Dimensão / Bucket</label>
+      <input id="actionDimensionValue" class="input" type="number" min="0" value="${escapeHtml(state.values.dimension || "0")}" />
+    `;
+  } else {
+    titleEl.textContent = "Ação";
+    html = '<div class="empty">Nenhuma ação selecionada.</div>';
+  }
+
+  fieldsWrap.innerHTML = html;
+}
 function renderAll() {
   renderDashboard();
   renderPlayers();
@@ -504,6 +626,7 @@ function renderAll() {
   renderLogs();
   renderBans();
   renderReports();
+  renderActionModal();
 
   if (window.AppState.modals.player) {
     renderPlayerModal(window.getSelectedPlayer());

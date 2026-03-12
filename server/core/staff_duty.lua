@@ -218,6 +218,59 @@ function P.GetStaffDutyRows()
     return rows
 end
 
+function P.GetTodayStaffDailyStats(limit)
+    limit = tonumber(limit or 20) or 20
+
+    return MySQL.query.await([[
+        SELECT *
+        FROM `staff_daily_stats`
+        WHERE `date_ref` = ?
+        ORDER BY `seconds_on_duty` DESC, `reports_closed` DESC, `reports_handled` DESC
+        LIMIT ?
+    ]], {
+        dutyDateRef(),
+        limit
+    }) or {}
+end
+
+function P.GetRecentStaffDutyLogs(limit)
+    limit = tonumber(limit or 20) or 20
+
+    return MySQL.query.await([[
+        SELECT *
+        FROM `staff_duty_logs`
+        ORDER BY `id` DESC
+        LIMIT ?
+    ]], {
+        limit
+    }) or {}
+end
+
+function P.GetMyTodayStaffStats(src)
+    local license = P.GetStaffLicense(src)
+    local rows = MySQL.query.await([[
+        SELECT *
+        FROM `staff_daily_stats`
+        WHERE `staff_license` = ? AND `date_ref` = ?
+        LIMIT 1
+    ]], {
+        license,
+        dutyDateRef()
+    }) or {}
+
+    return rows[1] or {
+        staff_license = license,
+        seconds_on_duty = 0,
+        reports_handled = 0,
+        reports_closed = 0,
+        warns_applied = 0,
+        bans_applied = 0,
+        revives_done = 0,
+        teleports_done = 0,
+        spectates_done = 0
+    }
+end
+
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getStaffDutyData', function(src, cb)
     if not P.CanOpen(src) then
         return cb({ ok = false, error = 'Sem permissão.' })
@@ -233,6 +286,32 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getStaffDutyData', functio
         end
     end
 
+    local dailyStats = P.GetTodayStaffDailyStats(20)
+    local recentLogs = P.GetRecentStaffDutyLogs(20)
+    local myToday = P.GetMyTodayStaffStats(src)
+
+    local totals = {
+        seconds_on_duty = 0,
+        reports_handled = 0,
+        reports_closed = 0,
+        warns_applied = 0,
+        bans_applied = 0,
+        revives_done = 0,
+        teleports_done = 0,
+        spectates_done = 0
+    }
+
+    for _, row in ipairs(dailyStats) do
+        totals.seconds_on_duty = totals.seconds_on_duty + (tonumber(row.seconds_on_duty or 0) or 0)
+        totals.reports_handled = totals.reports_handled + (tonumber(row.reports_handled or 0) or 0)
+        totals.reports_closed = totals.reports_closed + (tonumber(row.reports_closed or 0) or 0)
+        totals.warns_applied = totals.warns_applied + (tonumber(row.warns_applied or 0) or 0)
+        totals.bans_applied = totals.bans_applied + (tonumber(row.bans_applied or 0) or 0)
+        totals.revives_done = totals.revives_done + (tonumber(row.revives_done or 0) or 0)
+        totals.teleports_done = totals.teleports_done + (tonumber(row.teleports_done or 0) or 0)
+        totals.spectates_done = totals.spectates_done + (tonumber(row.spectates_done or 0) or 0)
+    end
+
     cb({
         ok = true,
         rows = rows,
@@ -242,7 +321,11 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getStaffDutyData', functio
             totalOnDuty = totalOnDuty,
             totalBusy = totalBusy,
             totalFree = math.max(0, totalOnDuty - totalBusy)
-        }
+        },
+        dailyStats = dailyStats,
+        recentLogs = recentLogs,
+        myToday = myToday,
+        totals = totals
     })
 end)
 
