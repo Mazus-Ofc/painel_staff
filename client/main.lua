@@ -48,25 +48,62 @@ RegisterNetEvent('mz_staffpanel:client:openSupportChat', function(payload)
     openSupportChat(payload.reportId or 0)
 end)
 
-RegisterNUICallback('close', function(_, cb) setUI(false) cb('ok') end)
+RegisterNUICallback('close', function(_, cb)
+    setUI(false)
+    cb('ok')
+end)
+
+RegisterNUICallback('getStaffDutyData', function(_, cb)
+    QBCore.Functions.TriggerCallback('mz_staffpanel:server:getStaffDutyData', function(resp)
+        cb(resp or { ok = false })
+    end)
+end)
+
+RegisterNUICallback('setDutyState', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:setDutyState', data or {})
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('refresh', function(_, cb)
     QBCore.Functions.TriggerCallback('mz_staffpanel:server:getData', function(data)
         sendUI('hydrate', data)
         cb(data)
     end)
 end)
-RegisterNUICallback('action', function(data, cb) TriggerServerEvent('mz_staffpanel:server:performAction', data) cb('ok') end)
+
+RegisterNUICallback('action', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:performAction', data)
+    cb('ok')
+end)
+
 RegisterNUICallback('supportFetch', function(data, cb)
     QBCore.Functions.TriggerCallback('mz_staffpanel:server:getSupportSession', function(session)
         cb(session or { ok = false })
     end, tonumber((data or {}).reportId or 0) or 0)
 end)
+
 RegisterNUICallback('supportSend', function(data, cb)
     TriggerServerEvent('mz_staffpanel:server:supportSend', data or {})
     cb({ ok = true })
 end)
+
 RegisterNUICallback('supportCloseReport', function(data, cb)
     TriggerServerEvent('mz_staffpanel:server:supportClose', data or {})
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('supportAcceptReport', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:supportAccept', data or {})
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('supportReopenReport', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:supportReopen', data or {})
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('supportUpdateMeta', function(data, cb)
+    TriggerServerEvent('mz_staffpanel:server:supportSetMeta', data or {})
     cb({ ok = true })
 end)
 
@@ -75,10 +112,12 @@ RegisterNUICallback('getStaffManageData', function(data, cb)
         cb(resp or { ok = false })
     end, tonumber((data or {}).target or 0) or 0)
 end)
+
 RegisterNUICallback('manageStaffRole', function(data, cb)
     TriggerServerEvent('mz_staffpanel:server:manageStaffRole', data or {})
     cb({ ok = true })
 end)
+
 RegisterNUICallback('clearStaffRoles', function(data, cb)
     TriggerServerEvent('mz_staffpanel:server:clearStaffRoles', data or {})
     cb({ ok = true })
@@ -88,7 +127,10 @@ RegisterNetEvent('mz_staffpanel:client:teleportToCoords', function(coords)
     SetEntityCoords(PlayerPedId(), coords.x + 0.0, coords.y + 0.0, coords.z + 0.0, false, false, false, false)
 end)
 
-RegisterNetEvent('mz_staffpanel:client:killPlayer', function() SetEntityHealth(PlayerPedId(), 0) end)
+RegisterNetEvent('mz_staffpanel:client:killPlayer', function()
+    SetEntityHealth(PlayerPedId(), 0)
+end)
+
 RegisterNetEvent('mz_staffpanel:client:healPlayer', function()
     local ped = PlayerPedId()
     SetEntityHealth(ped, GetEntityMaxHealth(ped))
@@ -96,6 +138,7 @@ RegisterNetEvent('mz_staffpanel:client:healPlayer', function()
     ResetPedVisibleDamage(ped)
     QBCore.Functions.Notify('Você foi curado pela staff.', 'success')
 end)
+
 RegisterNetEvent('mz_staffpanel:client:setFrozen', function(state)
     frozen = state
     FreezeEntityPosition(PlayerPedId(), state)
@@ -110,7 +153,9 @@ local function setSpectatePedState(isSpec)
         SetEntityInvincible(ped, true)
         FreezeEntityPosition(ped, true)
         SetEntityCollision(ped, false, false)
-        if IsPedInAnyVehicle(ped, false) then TaskLeaveVehicle(ped, GetVehiclePedIsIn(ped, false), 16) end
+        if IsPedInAnyVehicle(ped, false) then
+            TaskLeaveVehicle(ped, GetVehiclePedIsIn(ped, false), 16)
+        end
     else
         NetworkSetInSpectatorMode(false, ped)
         SetEntityVisible(ped, not invisible and (savedSpectateState.wasVisible ~= false), false)
@@ -130,6 +175,7 @@ end
 RegisterNetEvent('mz_staffpanel:client:startSpectate', function(targetSrc)
     targetSrc = tonumber(targetSrc or 0) or 0
     if targetSrc <= 0 then return end
+
     spectating = true
     spectateTargetSrc = targetSrc
     spectateLastSync = nil
@@ -142,14 +188,19 @@ RegisterNetEvent('mz_staffpanel:client:startSpectate', function(targetSrc)
             TriggerServerEvent('mz_staffpanel:server:spectateTick')
             Wait(250)
             if not spectating then break end
+
             if spectateLastSync and spectateLastSync.src == spectateTargetSrc then
                 TriggerServerEvent('mz_staffpanel:server:setSpectateBucket', spectateLastSync.bucket)
                 stickNearSpectateTarget(spectateLastSync.coords, spectateLastSync.heading)
+
                 local tId = GetPlayerFromServerId(spectateTargetSrc)
                 if tId ~= -1 then
                     local tPed = GetPlayerPed(tId)
-                    if DoesEntityExist(tPed) then NetworkSetInSpectatorMode(true, tPed) end
+                    if DoesEntityExist(tPed) then
+                        NetworkSetInSpectatorMode(true, tPed)
+                    end
                 end
+
                 DisableControlAction(0, 24, true)
                 DisableControlAction(0, 25, true)
                 DisableControlAction(0, 23, true)
@@ -160,13 +211,18 @@ RegisterNetEvent('mz_staffpanel:client:startSpectate', function(targetSrc)
     end)
 end)
 
-RegisterNetEvent('mz_staffpanel:client:syncSpectateTarget', function(payload) spectateLastSync = payload end)
+RegisterNetEvent('mz_staffpanel:client:syncSpectateTarget', function(payload)
+    spectateLastSync = payload
+end)
+
 RegisterNetEvent('mz_staffpanel:client:stopSpectate', function(returnCoords, returnHeading, silent)
     if not spectating then return end
+
     spectating = false
     spectateTargetSrc = 0
     spectateLastSync = nil
     setSpectatePedState(false)
+
     local ped = PlayerPedId()
     if returnCoords and returnCoords.x then
         SetEntityCoordsNoOffset(ped, returnCoords.x, returnCoords.y, returnCoords.z, false, false, false)
@@ -174,30 +230,43 @@ RegisterNetEvent('mz_staffpanel:client:stopSpectate', function(returnCoords, ret
     elseif spectateReturnCoords then
         SetEntityCoords(ped, spectateReturnCoords.x, spectateReturnCoords.y, spectateReturnCoords.z, false, false, false, false)
     end
+
     spectateReturnCoords = nil
-    if not silent then QBCore.Functions.Notify('Spectate desativado.', 'primary') end
+
+    if not silent then
+        QBCore.Functions.Notify('Spectate desativado.', 'primary')
+    end
 end)
 
 RegisterNetEvent('mz_staffpanel:client:toggleNames', function()
     showNames = not showNames
     QBCore.Functions.Notify(showNames and 'Nomes ativados.' or 'Nomes desativados.', showNames and 'success' or 'primary')
 end)
+
 RegisterNetEvent('mz_staffpanel:client:toggleBlips', function()
     showBlips = not showBlips
     if not showBlips then
-        for _, blip in pairs(playerBlips) do if DoesBlipExist(blip) then RemoveBlip(blip) end end
+        for _, blip in pairs(playerBlips) do
+            if DoesBlipExist(blip) then RemoveBlip(blip) end
+        end
         playerBlips = {}
     end
     QBCore.Functions.Notify(showBlips and 'Blips ativados.' or 'Blips desativados.', showBlips and 'success' or 'primary')
 end)
+
 RegisterNetEvent('mz_staffpanel:client:toggleInvisible', function()
     invisible = not invisible
     local ped = PlayerPedId()
     SetEntityVisible(ped, not invisible, false)
     NetworkSetEntityInvisibleToNetwork(ped, invisible)
-    if invisible then SetEntityAlpha(ped, 120, false) else ResetEntityAlpha(ped) end
+    if invisible then
+        SetEntityAlpha(ped, 120, false)
+    else
+        ResetEntityAlpha(ped)
+    end
     QBCore.Functions.Notify(invisible and 'Invisibilidade ativada.' or 'Invisibilidade desativada.', invisible and 'success' or 'primary')
 end)
+
 RegisterNetEvent('mz_staffpanel:client:toggleGod', function()
     godmode = not godmode
     local ped = PlayerPedId()
@@ -228,199 +297,187 @@ local function copyToClipboard(dataType)
     local heading = QBCore.Shared.Round(GetEntityHeading(PlayerPedId()), 2)
     local x, y, z = QBCore.Shared.Round(coords.x, 2), QBCore.Shared.Round(coords.y, 2), QBCore.Shared.Round(coords.z, 2)
     local str = ''
+
     if dataType == 'coords2' then str = ('vector2(%s, %s)'):format(x, y) end
     if dataType == 'coords3' then str = ('vector3(%s, %s, %s)'):format(x, y, z) end
     if dataType == 'coords4' then str = ('vector4(%s, %s, %s, %s)'):format(x, y, z, heading) end
     if dataType == 'heading' then str = tostring(heading) end
-    if str ~= '' then
-        SendNUIMessage({ action = 'clipboard', data = str })
-        QBCore.Functions.Notify('Copiado para a área de transferência.', 'success')
-    end
+
+    SendNUIMessage({ action = 'copy', data = str })
+    QBCore.Functions.Notify('Copiado para área de transferência.', 'success')
 end
 
-RegisterNetEvent('mz_staffpanel:client:copyToClipboard', function(dataType) copyToClipboard(dataType) end)
-RegisterNetEvent('mz_staffpanel:client:giveWeapon', function(weaponName, ammo)
-    local hash = joaat(tostring(weaponName or ''):upper())
-    ammo = tonumber(ammo or 250) or 250
-    GiveWeaponToPed(PlayerPedId(), hash, ammo, false, true)
-    SetPedAmmo(PlayerPedId(), hash, ammo)
+RegisterNetEvent('mz_staffpanel:client:copyToClipboard', copyToClipboard)
+
+RegisterNetEvent('mz_staffpanel:client:spawnVehicle', function(model)
+    local mHash = joaat(model)
+    RequestModel(mHash)
+    while not HasModelLoaded(mHash) do Wait(0) end
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local vehicle = CreateVehicle(mHash, coords.x, coords.y, coords.z, GetEntityHeading(ped), true, false)
+    SetVehicleOnGroundProperly(vehicle)
+    SetPedIntoVehicle(ped, vehicle, -1)
+    SetModelAsNoLongerNeeded(mHash)
 end)
 
-local blockedPeds = { mp_m_freemode_01 = true, mp_f_freemode_01 = true }
-local function loadModel(model)
-    local hash = type(model) == 'number' and model or joaat(model)
-    if not IsModelInCdimage(hash) or not IsModelValid(hash) then return nil end
-    RequestModel(hash)
-    local timeout = GetGameTimer() + 8000
-    while not HasModelLoaded(hash) do
-        Wait(10)
-        if GetGameTimer() > timeout then return nil end
+RegisterNetEvent('mz_staffpanel:client:deleteVehicle', function()
+    local ped = PlayerPedId()
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    if vehicle ~= 0 then
+        SetEntityAsMissionEntity(vehicle, true, true)
+        DeleteVehicle(vehicle)
+    else
+        local coords = GetEntityCoords(ped)
+        vehicle = GetClosestVehicle(coords.x, coords.y, coords.z, 6.0, 0, 71)
+        if vehicle ~= 0 then
+            SetEntityAsMissionEntity(vehicle, true, true)
+            DeleteVehicle(vehicle)
+        end
     end
-    return hash
-end
+end)
+
+RegisterNetEvent('mz_staffpanel:client:maxmodVehicle', function()
+    local veh = GetVehiclePedIsIn(PlayerPedId(), false)
+    if veh == 0 then
+        QBCore.Functions.Notify('Você precisa estar em um veículo.', 'error')
+        return
+    end
+
+    SetVehicleModKit(veh, 0)
+    for i = 0, 48 do
+        local modCount = GetNumVehicleMods(veh, i)
+        if modCount and modCount > 0 then
+            SetVehicleMod(veh, i, modCount - 1, false)
+        end
+    end
+    ToggleVehicleMod(veh, 18, true)
+    SetVehicleTyresCanBurst(veh, false)
+    SetVehicleFixed(veh)
+    SetVehicleDeformationFixed(veh)
+    SetVehicleDirtLevel(veh, 0.0)
+end)
+
+RegisterNetEvent('mz_staffpanel:client:requestSaveVehicle', function()
+    local ped = PlayerPedId()
+    local veh = GetVehiclePedIsIn(ped, false)
+    if veh == 0 then
+        QBCore.Functions.Notify('Entre em um veículo para salvá-lo.', 'error')
+        return
+    end
+    local plate = QBCore.Functions.GetPlate(veh)
+    local props = QBCore.Functions.GetVehicleProperties(veh)
+    TriggerServerEvent('mz_staffpanel:server:saveVehicleData', props, plate)
+end)
+
+RegisterNetEvent('mz_staffpanel:client:giveWeapon', function(weaponName, ammo)
+    local ped = PlayerPedId()
+    local weaponHash = joaat(weaponName)
+    GiveWeaponToPed(ped, weaponHash, tonumber(ammo or 250) or 250, false, true)
+end)
 
 RegisterNetEvent('mz_staffpanel:client:setModel', function(model)
-    local hash = loadModel(model)
-    if not hash then return QBCore.Functions.Notify('Modelo inválido.', 'error') end
-    local ped = PlayerPedId()
-    SetEntityInvincible(ped, true)
-    SetPlayerModel(PlayerId(), hash)
-    if not blockedPeds[tostring(model)] then SetPedRandomComponentVariation(PlayerPedId(), true) end
-    SetModelAsNoLongerNeeded(hash)
-    SetEntityInvincible(PlayerPedId(), godmode)
-    QBCore.Functions.Notify(('Modelo alterado para %s.'):format(model), 'success')
+    local modelHash = tonumber(model) or joaat(model)
+    if not IsModelInCdimage(modelHash) or not IsModelValid(modelHash) then
+        QBCore.Functions.Notify('Modelo inválido.', 'error')
+        return
+    end
+
+    RequestModel(modelHash)
+    while not HasModelLoaded(modelHash) do Wait(0) end
+
+    SetPlayerModel(PlayerId(), modelHash)
+    SetModelAsNoLongerNeeded(modelHash)
 end)
+
 RegisterNetEvent('mz_staffpanel:client:setSpeed', function(speed)
-    local player = PlayerId()
-    if tostring(speed) == 'fast' then
-        SetRunSprintMultiplierForPlayer(player, 1.49)
-        SetSwimMultiplierForPlayer(player, 1.49)
-        QBCore.Functions.Notify('Velocidade rápida ativada.', 'success')
-    else
-        SetRunSprintMultiplierForPlayer(player, 1.0)
-        SetSwimMultiplierForPlayer(player, 1.0)
-        QBCore.Functions.Notify('Velocidade normal restaurada.', 'primary')
-    end
+    local ped = PlayerPedId()
+    local mult = 1.0
+    speed = tostring(speed or 'normal'):lower()
+
+    if speed == 'super' then mult = 1.2 end
+    if speed == 'flash' then mult = 1.49 end
+    if speed == 'normal' then mult = 1.0 end
+
+    SetRunSprintMultiplierForPlayer(PlayerId(), mult)
+    QBCore.Functions.Notify(('Velocidade ajustada: %s'):format(speed), 'success')
 end)
+
 RegisterNetEvent('mz_staffpanel:client:setAmmo', function(amount)
-    local weapon = GetSelectedPedWeapon(PlayerPedId())
     amount = tonumber(amount or 0) or 0
-    if weapon and weapon ~= 0 then
-        SetPedAmmo(PlayerPedId(), weapon, amount)
-        QBCore.Functions.Notify(('Munição definida para %d.'):format(amount), 'success')
+    local ped = PlayerPedId()
+    local weapon = GetSelectedPedWeapon(ped)
+    if weapon == 0 then
+        QBCore.Functions.Notify('Você precisa estar com uma arma em mãos.', 'error')
+        return
     end
+    SetPedAmmo(ped, weapon, amount)
+    QBCore.Functions.Notify(('Munição ajustada: %d'):format(amount), 'success')
 end)
-RegisterNetEvent('mz_staffpanel:client:giveNuiFocus', function(focus, mouse) SetNuiFocus(focus == true, mouse == true) end)
-RegisterNetEvent('mz_staffpanel:client:requestSaveVehicle', function()
-    local veh = GetVehiclePedIsIn(PlayerPedId(), false)
-    if veh == 0 then return QBCore.Functions.Notify('Você não está em um veículo.', 'error') end
-    TriggerServerEvent('mz_staffpanel:server:saveVehicleData', QBCore.Functions.GetVehicleProperties(veh), QBCore.Functions.GetPlate(veh))
-end)
-RegisterNetEvent('mz_staffpanel:client:maxmodVehicle', function()
-    local vehicle = GetVehiclePedIsIn(PlayerPedId(), false)
-    if vehicle == 0 then return QBCore.Functions.Notify('Você não está em veículo.', 'error') end
-    local mods = {11,12,13,15,16}
-    SetVehicleModKit(vehicle, 0)
-    for _, modType in ipairs(mods) do SetVehicleMod(vehicle, modType, GetNumVehicleMods(vehicle, modType) - 1, false) end
-    ToggleVehicleMod(vehicle, 18, true)
-    SetVehicleFixed(vehicle)
-    QBCore.Functions.Notify('Maxmods aplicados.', 'success')
+
+RegisterNetEvent('mz_staffpanel:client:giveNuiFocus', function(focus, mouse)
+    SetNuiFocus(focus == true, mouse == true)
 end)
 
 CreateThread(function()
     while true do
+        Wait(0)
+
+        if showCoords then
+            local c = GetEntityCoords(PlayerPedId())
+            local h = GetEntityHeading(PlayerPedId())
+            draw2DText(
+                ('~w~X: ~p~%.2f  ~w~Y: ~p~%.2f  ~w~Z: ~p~%.2f  ~w~H: ~p~%.2f'):format(c.x, c.y, c.z, h),
+                4,
+                { 255, 255, 255 },
+                0.35,
+                0.015,
+                0.80
+            )
+        end
+
         if showNames then
             for _, player in ipairs(GetActivePlayers()) do
                 local ped = GetPlayerPed(player)
                 if ped ~= PlayerPedId() then
+                    local myCoords = GetEntityCoords(PlayerPedId())
                     local coords = GetEntityCoords(ped)
-                    if #(coords - GetEntityCoords(PlayerPedId())) < 30.0 then
-                        local onScreen, x, y = GetScreenCoordFromWorldCoord(coords.x, coords.y, coords.z + 1.0)
+                    local dist = #(myCoords - coords)
+                    if dist < 30.0 then
+                        local onScreen, x, y = World3dToScreen2d(coords.x, coords.y, coords.z + 1.1)
                         if onScreen then
-                            SetTextScale(0.32, 0.32); SetTextFont(4); SetTextOutline(); SetTextCentre(true); SetTextColour(255, 255, 255, 215)
-                            BeginTextCommandDisplayText('STRING')
-                            AddTextComponentSubstringPlayerName(('[%s] %s'):format(GetPlayerServerId(player), GetPlayerName(player)))
-                            EndTextCommandDisplayText(x, y)
+                            local sid = GetPlayerServerId(player)
+                            local hp = GetEntityHealth(ped)
+                            draw2DText(('[%d] %s | HP %d'):format(sid, GetPlayerName(player), hp), 4, {255,255,255}, 0.30, x, y)
                         end
                     end
                 end
             end
-            Wait(0)
-        else
-            Wait(500)
         end
-    end
-end)
 
-CreateThread(function()
-    while true do
         if showBlips then
-            local active = {}
             for _, player in ipairs(GetActivePlayers()) do
                 local sid = GetPlayerServerId(player)
-                if sid ~= GetPlayerServerId(PlayerId()) then
-                    active[sid] = true
-                    local ped = GetPlayerPed(player)
-                    if ped ~= 0 then
-                        if not playerBlips[sid] or not DoesBlipExist(playerBlips[sid]) then
-                            local blip = AddBlipForEntity(ped)
-                            SetBlipScale(blip, 0.85)
-                            SetBlipCategory(blip, 7)
-                            ShowHeadingIndicatorOnBlip(blip, true)
-                            BeginTextCommandSetBlipName('STRING')
-                            AddTextComponentString(('[%s] %s'):format(sid, GetPlayerName(player)))
-                            EndTextCommandSetBlipName(blip)
-                            playerBlips[sid] = blip
-                        else
-                            SetBlipCoords(playerBlips[sid], GetEntityCoords(ped))
-                        end
+                if player ~= PlayerId() then
+                    if not playerBlips[sid] or not DoesBlipExist(playerBlips[sid]) then
+                        local blip = AddBlipForEntity(GetPlayerPed(player))
+                        SetBlipSprite(blip, 1)
+                        SetBlipColour(blip, 0)
+                        SetBlipScale(blip, 0.75)
+                        SetBlipAsShortRange(blip, false)
+                        BeginTextCommandSetBlipName('STRING')
+                        AddTextComponentString(('[%d] %s'):format(sid, GetPlayerName(player)))
+                        EndTextCommandSetBlipName(blip)
+                        playerBlips[sid] = blip
+                    else
+                        SetBlipCoords(playerBlips[sid], GetEntityCoords(GetPlayerPed(player)))
                     end
                 end
             end
-            for sid, blip in pairs(playerBlips) do
-                if not active[sid] and DoesBlipExist(blip) then
-                    RemoveBlip(blip)
-                    playerBlips[sid] = nil
-                end
-            end
-            Wait(1000)
-        else
-            Wait(800)
         end
     end
 end)
 
-CreateThread(function()
-    while true do
-        if showCoords then
-            local coords = GetEntityCoords(PlayerPedId())
-            draw2DText(('Coords: vector4(%s, %s, %s, %s)'):format(QBCore.Shared.Round(coords.x,2), QBCore.Shared.Round(coords.y,2), QBCore.Shared.Round(coords.z,2), QBCore.Shared.Round(GetEntityHeading(PlayerPedId()),2)), 4, {66,182,245}, 0.4, 0.40, 0.025)
-            Wait(0)
-        else
-            Wait(700)
-        end
-    end
-end)
-
-RegisterCommand('+' .. Config.Command, function() TriggerEvent('mz_staffpanel:client:open') end, false)
-RegisterKeyMapping('+' .. Config.Command, 'Abrir painel da staff', 'keyboard', 'F10')
-
-RegisterNetEvent('mz_staffpanel:client:spawnVehicle', function(model)
-    model = tostring(model or ''):lower()
-    local hash = loadModel(model)
-    if not hash then return QBCore.Functions.Notify(('Veículo %s não encontrado.'):format(model), 'error') end
-    local ped = PlayerPedId()
-    local currentVeh = GetVehiclePedIsIn(ped, false)
-    if currentVeh ~= 0 then
-        TaskLeaveVehicle(ped, currentVeh, 16)
-        Wait(250)
-    end
-    local spawnCoords = GetOffsetFromEntityInWorldCoords(ped, 0.0, 5.0, 0.2)
-    local spawned = CreateVehicle(hash, spawnCoords.x, spawnCoords.y, spawnCoords.z, GetEntityHeading(ped), true, false)
-    if spawned == 0 then return QBCore.Functions.Notify('Não consegui gerar o veículo.', 'error') end
-    SetVehicleOnGroundProperly(spawned)
-    SetEntityAsMissionEntity(spawned, true, true)
-    SetVehicleHasBeenOwnedByPlayer(spawned, true)
-    SetVehRadioStation(spawned, 'OFF')
-    SetModelAsNoLongerNeeded(hash)
-    TaskWarpPedIntoVehicle(ped, spawned, -1)
-    SetVehicleEngineOn(spawned, true, true, false)
-    SetVehicleDirtLevel(spawned, 0.0)
-    SetVehicleFuelLevel(spawned, 100.0)
-    QBCore.Functions.Notify(('Veículo %s gerado.'):format(model), 'success')
-end)
-RegisterNetEvent('mz_staffpanel:client:deleteVehicle', function()
-    local ped = PlayerPedId()
-    local vehicle = GetVehiclePedIsIn(ped, false)
-    if vehicle == 0 then vehicle = GetClosestVehicle(GetEntityCoords(ped), 6.0, 0, 71) end
-    if vehicle == 0 then return QBCore.Functions.Notify('Nenhum veículo próximo.', 'error') end
-    SetEntityAsMissionEntity(vehicle, true, true)
-    DeleteVehicle(vehicle)
-    if DoesEntityExist(vehicle) then DeleteEntity(vehicle) end
-    QBCore.Functions.Notify('Veículo removido.', 'success')
-end)
-
-AddEventHandler('onResourceStop', function(res)
-    if res ~= GetCurrentResourceName() then return end
-    if spectating then setSpectatePedState(false) end
+RegisterCommand('reports', function()
+    openSupportChat(0)
 end)

@@ -2,420 +2,380 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MZ Staff Panel</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="app" class="hidden">
-      <div class="overlay">
-        <div class="tablet-frame">
-          <aside class="sidebar">
-            <div class="logo">
-              <div class="logo-mark">ADM</div>
-              <div>
-                <strong id="serverName">Staff</strong>
-                <small>Administração</small>
-              </div>
-            </div>
-
-            <button class="nav active" data-tab="dashboard">Dashboard</button>
-            <button class="nav" data-tab="players">Jogadores</button>
-            <button class="nav" data-tab="reports">Chamados</button>
-            <button class="nav" data-tab="logs">Logs</button>
-            <button class="nav" data-tab="actions">Ações rápidas</button>
-            <button class="nav" data-tab="vehicles">Veículos</button>
-            <button class="nav" data-tab="communications">Comunicação</button>
-            <button class="nav" data-tab="dev">Dev</button>
-            <button class="nav" data-tab="commands">Comandos</button>
-          </aside>
-
-          <main class="content">
-            <header class="topbar">
-              <div>
-                <h1>Painel da Staff</h1>
-                <p>
-                  Controle de bans, chamados, advertências e auditoria completa
-                </p>
-              </div>
-              <div class="top-actions">
-                <button id="refreshBtn" class="btn ghost">Atualizar</button>
-                <button id="closeBtn" class="btn danger">Fechar</button>
-              </div>
-            </header>
-
-            <section id="tab-dashboard" class="tab active">
-              <div class="grid stats stats-5">
-                <article class="card stat-card">
-                  <span>Jogadores online</span
-                  ><strong id="statOnline">0</strong>
-                </article>
-                <article class="card stat-card">
-                  <span>Seu ID</span><strong id="statMe">0</strong>
-                </article>
-                <article class="card stat-card">
-                  <span>Staff online</span><strong id="statStaff">0</strong>
-                </article>
-                <article class="card stat-card">
-                  <span>Chamados ativos</span
-                  ><strong id="statReports">0</strong>
-                </article>
-                <article class="card stat-card">
-                  <span>Total bans</span><strong id="statBans">0</strong>
-                </article>
-              </div>
-              <div class="grid dash-grid">
-                <article class="card">
-                  <div class="section-head"><h3>Seu acesso</h3></div>
-                  <div id="permPills" class="pill-wrap"></div>
-                </article>
-                <article class="card">
-                  <div class="section-head">
-                    <h3>Comandos recentes da staff</h3>
-                  </div>
-                  <div id="recentCommands" class="stack-list"></div>
-                </article>
-              </div>
-              <div class="grid dash-grid bottom-grid">
-                <article class="card">
-                  <div class="section-head"><h3>Logs recentes</h3></div>
-                  <div id="dashboardLogs" class="stack-list tall"></div>
-                </article>
-                <article class="card">
-                  <div class="section-head"><h3>Chamados recentes</h3></div>
-                  <div id="dashboardReports" class="stack-list tall"></div>
-                </article>
-              </div>
-            </section>
-
-            <section id="tab-players" class="tab">
-              <div class="card fill-card">
-                <div class="table-head">
-                  <h3>Jogadores online</h3>
-                  <input
-                    id="searchInput"
-                    type="text"
-                    placeholder="Buscar por nome, id, citizenid..."
-                  />
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Job</th>
-                        <th>Gang</th>
-                        <th>Ping</th>
-                        <th>Bucket</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="playerRows"></tbody>
-                  </table>
-                </div>
-              </div>
-            </section>
-
-            <section id="tab-reports" class="tab">
-              <div class="card fill-card">
-                <div class="table-head">
-                  <h3>Chamados / Reports</h3>
-                  <input
-                    id="reportSearchInput"
-                    type="text"
-                    placeholder="Buscar por jogador, id, status, mensagem..."
-                  />
-                </div>
-                <div id="reportList" class="stack-list tall"></div>
-              </div>
-            </section>
-
-            <section id="tab-logs" class="tab">
-              <div class="card fill-card">
-                <div class="table-head">
-                  <h3>Logs completos</h3>
-                  <input
-                    id="logSearchInput"
-                    type="text"
-                    placeholder="Buscar em logs, ações, ator, alvo..."
-                  />
-                </div>
-                <div id="logList" class="stack-list tall"></div>
-              </div>
-            </section>
-
-            <section id="tab-actions" class="tab">
-              <div class="grid actions-grid" id="quickActions"></div>
-            </section>
-
-            <section id="tab-vehicles" class="tab">
-              <div class="card fill-card">
-                <div class="table-head">
-                  <h3>Gerar veículos</h3>
-                  <input
-                    id="vehicleSearchInput"
-                    type="text"
-                    placeholder="Buscar por nome, spawn, marca, categoria..."
-                  />
-                </div>
-                <div id="vehicleGrid" class="vehicle-grid"></div>
-              </div>
-            </section>
-
-            <section id="tab-communications" class="tab">
-              <div class="grid two-col">
-                <div class="card form-card">
-                  <h3>Anúncio global</h3>
-                  <textarea
-                    id="announceMessage"
-                    placeholder="Digite a mensagem do anúncio..."
-                  ></textarea>
-                  <button id="sendAnnounce" class="btn">Enviar anúncio</button>
-                </div>
-                <div class="card form-card">
-                  <h3>Staffchat</h3>
-                  <textarea
-                    id="staffchatMessage"
-                    placeholder="Mensagem para a staff..."
-                  ></textarea>
-                  <button id="sendStaffchat" class="btn">
-                    Enviar staffchat
-                  </button>
-                </div>
-                <div class="card form-card">
-                  <h3>Kick all</h3>
-                  <textarea
-                    id="kickallReason"
-                    placeholder="Motivo do kick all..."
-                  ></textarea>
-                  <button id="sendKickall" class="btn danger">
-                    Kickar todos
-                  </button>
-                </div>
-                <div class="card form-card">
-                  <h3>Resposta de report</h3>
-                  <input
-                    id="reportReplyId"
-                    type="number"
-                    placeholder="ID do jogador"
-                  />
-                  <input
-                    id="reportReplyTicket"
-                    type="number"
-                    placeholder="ID do chamado (opcional)"
-                  />
-                  <textarea
-                    id="reportReplyMessage"
-                    placeholder="Mensagem da resposta..."
-                  ></textarea>
-                  <button id="sendReportReply" class="btn">
-                    Responder report
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section id="tab-dev" class="tab">
-              <div class="grid two-col">
-                <div class="card form-card">
-                  <h3>Modelo</h3>
-                  <input
-                    id="setModelInput"
-                    type="text"
-                    placeholder="a_m_m_bevhills_01 ou mp_m_freemode_01"
-                  />
-                  <input
-                    id="setModelTarget"
-                    type="number"
-                    placeholder="ID opcional"
-                  />
-                  <button id="sendSetModel" class="btn">Aplicar modelo</button>
-                </div>
-                <div class="card form-card">
-                  <h3>Velocidade</h3>
-                  <input
-                    id="setSpeedInput"
-                    type="text"
-                    placeholder="fast ou normal"
-                  />
-                  <input
-                    id="setSpeedTarget"
-                    type="number"
-                    placeholder="ID opcional"
-                  />
-                  <button id="sendSetSpeed" class="btn">
-                    Aplicar velocidade
-                  </button>
-                </div>
-                <div class="card form-card">
-                  <h3>Munição</h3>
-                  <input
-                    id="setAmmoInput"
-                    type="number"
-                    placeholder="Quantidade"
-                  />
-                  <input
-                    id="setAmmoTarget"
-                    type="number"
-                    placeholder="ID opcional"
-                  />
-                  <button id="sendSetAmmo" class="btn">Aplicar munição</button>
-                </div>
-                <div class="card form-card">
-                  <h3>NUI Focus</h3>
-                  <input
-                    id="nuiFocusTarget"
-                    type="number"
-                    placeholder="ID do jogador"
-                  />
-                  <div class="inline-checks">
-                    <label
-                      ><input id="nuiFocusFlag" type="checkbox" checked />
-                      Focus</label
-                    >
-                    <label
-                      ><input id="nuiMouseFlag" type="checkbox" checked />
-                      Mouse</label
-                    >
-                  </div>
-                  <button id="sendNuiFocus" class="btn">Aplicar focus</button>
-                </div>
-              </div>
-            </section>
-
-            <section id="tab-commands" class="tab">
-              <div class="card commands-card fixed">
-                <div class="table-head commands-head">
-                  <div>
-                    <h3>Comandos usuais</h3>
-                    <small
-                      >Lista organizada com pesquisa e visualização
-                      completa</small
-                    >
-                  </div>
-                  <div class="commands-tools">
-                    <input
-                      id="commandSearchInput"
-                      type="text"
-                      placeholder="Buscar por comando ou descrição..."
-                    />
-                    <button id="toggleCommandsBtn" class="btn ghost">
-                      Ver todos
-                    </button>
-                  </div>
-                </div>
-                <div class="command-list-wrap compact" id="commandListWrap">
-                  <div class="command-list" id="commandList"></div>
-                </div>
-              </div>
-            </section>
-          </main>
-        </div>
-      </div>
-
-      <div id="supportModal" class="modal hidden">
-        <div class="modal-card support-card">
-          <div class="modal-head">
-            <div>
-              <h3 id="supportTitle">Atendimento</h3>
-              <small id="supportSubtitle">Converse com a staff</small>
-            </div>
-            <div class="row-actions left">
-              <button id="supportGotoBtn" class="btn ghost hidden">
-                Ir até o jogador
-              </button>
-              <button id="closeSupportModal" class="btn ghost">Fechar</button>
-            </div>
-          </div>
-          <div id="supportInfoBar" class="support-info"></div>
-          <div id="supportMessages" class="support-messages"></div>
-          <div class="support-compose">
-            <textarea
-              id="supportMessageInput"
-              placeholder="Digite sua mensagem..."
-            ></textarea>
-            <div class="support-actions-row">
-              <select id="supportCloseStatus">
-                <option value="resolvido">Resolvido</option>
-                <option value="rejeitado">Rejeitado</option>
-                <option value="pendente">Pendente</option>
-              </select>
-              <input
-                id="supportCloseNote"
-                type="text"
-                placeholder="Observação final (opcional)"
-              />
-              <button id="supportCloseBtn" class="btn danger hidden">
-                Finalizar
-              </button>
-              <button id="supportSendBtn" class="btn">Enviar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="playerModal" class="modal hidden">
-        <div class="modal-card">
-          <div class="modal-head">
-            <div>
-              <h3 id="playerModalTitle">Detalhes do jogador</h3>
-              <small id="playerModalSubtitle">-</small>
-            </div>
-            <button id="closePlayerModal" class="btn ghost">Fechar</button>
-          </div>
-          <div id="playerDetailGrid" class="detail-grid"></div>
+    <div id="app" class="app hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-badge">MZ</div>
           <div>
-            <h4>Ações</h4>
-            <div id="playerDetailActions" class="row-actions left"></div>
+            <h1 id="serverName">Painel Staff</h1>
+            <p>Controle administrativo</p>
           </div>
-          <div id="playerStaffManager" class="staff-manager-block">
-            <div class="section-head compact-head">
-              <h4>Gerenciar staff</h4>
-              <small>Integração com mz_perm</small>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+          <button class="nav-btn" data-tab="players">Jogadores</button>
+          <button class="nav-btn" data-tab="staff">Staff</button>
+          <button class="nav-btn" data-tab="reports">Reports</button>
+          <button class="nav-btn" data-tab="vehicles">Veículos</button>
+          <button class="nav-btn" data-tab="logs">Logs</button>
+          <button class="nav-btn" data-tab="bans">Bans</button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="refreshBtn" class="btn btn-secondary">Atualizar</button>
+          <button id="closeBtn" class="btn btn-danger">Fechar</button>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section id="tab-dashboard" class="tab active">
+          <div class="page-header">
+            <div>
+              <h2>Dashboard</h2>
+              <p>Visão geral da staff e da cidade</p>
             </div>
-            <div id="playerStaffCurrent" class="pill-wrap"></div>
-            <div class="staff-manage-grid">
-              <div class="staff-role-picker" id="playerStaffRolePicker">
-                <select
-                  id="playerStaffRoleSelect"
-                  class="hidden-native-select"
-                ></select>
-                <button
-                  type="button"
-                  id="playerStaffRoleToggle"
-                  class="staff-role-toggle"
-                >
-                  Selecione um cargo
-                </button>
-                <div
-                  id="playerStaffRoleMenu"
-                  class="staff-role-menu hidden"
-                ></div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>Online</span>
+              <strong id="stat-online">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Staff online</span>
+              <strong id="stat-staff-online">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Bans</span>
+              <strong id="stat-bans">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Warns</span>
+              <strong id="stat-warns">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Reports abertos</span>
+              <strong id="stat-reports">0</strong>
+            </div>
+          </div>
+
+          <div class="panel-grid">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Últimos reports</h3>
               </div>
+              <div id="dashboardReports" class="list"></div>
+            </div>
+
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <h3>Logs recentes</h3>
+              </div>
+              <div id="dashboardLogs" class="list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-players" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Jogadores</h2>
+              <p>Lista e ações rápidas</p>
+            </div>
+            <input
+              id="playerSearch"
+              class="search"
+              type="text"
+              placeholder="Buscar jogador..."
+            />
+          </div>
+          <div id="playersList" class="table-list"></div>
+        </section>
+
+        <section id="tab-staff" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Staff</h2>
+              <p>Equipe em serviço e operação atual</p>
+            </div>
+
+            <div class="staff-top-actions">
+              <button id="staffOnBtn" class="btn btn-primary">
+                Entrar em serviço
+              </button>
+              <button id="staffOffBtn" class="btn btn-danger">
+                Sair de serviço
+              </button>
+              <button id="staffRefreshBtn" class="btn btn-secondary">
+                Atualizar staff
+              </button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>Em serviço</span>
+              <strong id="staff-duty-total">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Em atendimento</span>
+              <strong id="staff-duty-busy">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Livres</span>
+              <strong id="staff-duty-free">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Meu status</span>
+              <strong id="staff-duty-me">OFF</strong>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <h3>Staff em serviço</h3>
+            </div>
+            <div id="staffDutyList" class="table-list"></div>
+          </div>
+        </section>
+
+        <section id="tab-reports" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Reports</h2>
+              <p>Atendimento estruturado de staff</p>
+            </div>
+          </div>
+
+          <div class="report-toolbar">
+            <input
+              id="reportSearch"
+              class="search"
+              type="text"
+              placeholder="Buscar report..."
+            />
+            <select id="reportStatusFilter" class="select">
+              <option value="">Todos status</option>
+              <option value="pendente">Pendente</option>
+              <option value="em_atendimento">Em atendimento</option>
+              <option value="aguardando_player">Aguardando player</option>
+              <option value="aguardando_staff">Aguardando staff</option>
+              <option value="resolvido">Resolvido</option>
+              <option value="recusado">Recusado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <select id="reportPriorityFilter" class="select">
+              <option value="">Todas prioridades</option>
+              <option value="baixa">Baixa</option>
+              <option value="normal">Normal</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+          </div>
+
+          <div id="reportsList" class="cards-grid"></div>
+        </section>
+
+        <section id="tab-vehicles" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Veículos</h2>
+              <p>Spawn e gerenciamento</p>
+            </div>
+            <input
+              id="vehicleSearch"
+              class="search"
+              type="text"
+              placeholder="Buscar veículo..."
+            />
+          </div>
+          <div id="vehiclesList" class="cards-grid vehicle-grid"></div>
+        </section>
+
+        <section id="tab-logs" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Logs</h2>
+              <p>Auditoria do painel</p>
+            </div>
+          </div>
+          <div id="logsList" class="table-list"></div>
+        </section>
+
+        <section id="tab-bans" class="tab">
+          <div class="page-header">
+            <div>
+              <h2>Bans</h2>
+              <p>Histórico de punições</p>
+            </div>
+          </div>
+          <div id="bansList" class="table-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="playerModal" class="modal hidden">
+      <div class="modal-box large">
+        <div class="modal-header">
+          <div>
+            <h3>Jogador</h3>
+            <p id="playerModalSubtitle">Detalhes e ações</p>
+          </div>
+          <button class="icon-btn" data-close-modal="playerModal">✕</button>
+        </div>
+
+        <div id="playerInfo" class="player-info-grid"></div>
+
+        <div class="modal-section">
+          <h4>Ações rápidas</h4>
+          <div id="playerActions" class="action-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="supportModal" class="modal hidden">
+      <div class="modal-box xlarge">
+        <div class="modal-header">
+          <div>
+            <h3>Atendimento</h3>
+            <p id="supportTitle">Sessão de suporte</p>
+          </div>
+          <button class="icon-btn" data-close-modal="supportModal">✕</button>
+        </div>
+
+        <div id="supportMetaBar" class="support-meta-bar"></div>
+
+        <div class="support-layout">
+          <div class="support-chat-column">
+            <div id="supportMessages" class="support-messages"></div>
+
+            <div class="quick-replies">
+              <div class="section-mini-title">Respostas rápidas</div>
+              <div id="quickReplies" class="quick-replies-list"></div>
+            </div>
+
+            <div class="support-composer">
+              <textarea
+                id="supportMessage"
+                placeholder="Digite uma mensagem..."
+              ></textarea>
+              <div class="support-actions-row">
+                <button id="supportSendBtn" class="btn btn-primary">
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="support-side-column">
+            <div class="support-side-card">
+              <h4>Meta do atendimento</h4>
+
+              <label>Status</label>
+              <select id="supportStatus" class="select"></select>
+
+              <label>Prioridade</label>
+              <select id="supportPriority" class="select">
+                <option value="baixa">Baixa</option>
+                <option value="normal">Normal</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
+              </select>
+
+              <label>Tags (separadas por vírgula)</label>
               <input
-                id="playerStaffNote"
+                id="supportTags"
+                class="input"
                 type="text"
-                placeholder="Observação do log (opcional)"
+                placeholder="bug, denuncia, inventario"
               />
+
+              <div class="stack-actions">
+                <button id="supportSaveMetaBtn" class="btn btn-secondary">
+                  Salvar meta
+                </button>
+                <button id="supportAcceptBtn" class="btn btn-primary">
+                  Assumir atendimento
+                </button>
+                <button id="supportReopenBtn" class="btn btn-secondary">
+                  Reabrir
+                </button>
+              </div>
             </div>
-            <div class="row-actions left">
-              <button id="playerStaffAddBtn" class="btn">Definir cargo</button>
-              <button id="playerStaffRemoveBtn" class="btn ghost">
-                Remover cargo
-              </button>
-              <button id="playerStaffClearBtn" class="btn danger ghost">
-                Desligar staff
+
+            <div class="support-side-card">
+              <h4>Encerrar atendimento</h4>
+
+              <label>Status final</label>
+              <select id="supportCloseStatus" class="select">
+                <option value="resolvido">Resolvido</option>
+                <option value="recusado">Recusado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+
+              <label>Nota final</label>
+              <textarea
+                id="supportCloseNote"
+                placeholder="Escreva uma nota final..."
+              ></textarea>
+
+              <button id="supportCloseBtn" class="btn btn-danger">
+                Fechar atendimento
               </button>
             </div>
-            <div id="playerStaffAssignable" class="mini-help"></div>
           </div>
         </div>
       </div>
     </div>
+
+    <div id="staffManagerModal" class="modal hidden">
+      <div class="modal-box medium">
+        <div class="modal-header">
+          <div>
+            <h3>Gerenciar staff</h3>
+            <p id="staffManagerTitle">Cargos</p>
+          </div>
+          <button class="icon-btn" data-close-modal="staffManagerModal">
+            ✕
+          </button>
+        </div>
+
+        <div id="staffManagerCurrent" class="chips"></div>
+
+        <label>Cargo</label>
+        <select id="staffRoleSelect" class="select"></select>
+
+        <label>Observação</label>
+        <textarea
+          id="staffRoleNote"
+          placeholder="Observação opcional..."
+        ></textarea>
+
+        <div class="stack-actions">
+          <button id="staffAddBtn" class="btn btn-primary">
+            Adicionar cargo
+          </button>
+          <button id="staffRemoveBtn" class="btn btn-secondary">
+            Remover cargo
+          </button>
+          <button id="staffClearBtn" class="btn btn-danger">
+            Remover todos
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="js/state.js"></script>
-    <script src="js/utils.js"></script>
+    <!--<script src="js/utils.js"></script>-->
     <script src="js/renderers.js"></script>
     <script src="js/forms.js"></script>
+    <script src="js/app.js"></script>
   </body>
 </html>

@@ -51,6 +51,17 @@ function P.RequireAction(src, action)
         return false
     end
 
+    -- bypass do cfg/ACE/QBCore não precisa duty
+    if P.HasQBBypass and P.HasQBBypass(src) then
+        return true
+    end
+
+    if P.ActionRequiresDuty and P.ActionRequiresDuty(action) then
+        if not P.RequireStaffDuty(src) then
+            return false
+        end
+    end
+
     return true
 end
 

@@ -134,6 +134,46 @@ function P.GetOnlinePlayersData()
 end
 
 function P.EnsureTables()
+
+    MySQL.query.await(([=[
+    CREATE TABLE IF NOT EXISTS `staff_duty_logs` (
+      `id` INT NOT NULL AUTO_INCREMENT,
+      `staff_src` INT NULL,
+      `staff_name` VARCHAR(255) NULL,
+      `staff_license` VARCHAR(80) NOT NULL,
+      `role` VARCHAR(64) NULL,
+      `action` VARCHAR(24) NOT NULL,
+      `status` VARCHAR(32) NULL,
+      `started_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      `ended_at` TIMESTAMP NULL DEFAULT NULL,
+      `duration_seconds` INT NULL DEFAULT 0,
+      `date_ref` DATE NULL,
+      `metadata` LONGTEXT NULL,
+      PRIMARY KEY (`id`),
+      KEY `idx_staff_license` (`staff_license`),
+      KEY `idx_action` (`action`),
+      KEY `idx_date_ref` (`date_ref`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]=]))
+
+    MySQL.query.await(([=[
+        CREATE TABLE IF NOT EXISTS `staff_daily_stats` (
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `staff_license` VARCHAR(80) NOT NULL,
+        `staff_name` VARCHAR(255) NULL,
+        `date_ref` DATE NOT NULL,
+        `seconds_on_duty` INT NULL DEFAULT 0,
+        `reports_handled` INT NULL DEFAULT 0,
+        `reports_closed` INT NULL DEFAULT 0,
+        `warns_applied` INT NULL DEFAULT 0,
+        `bans_applied` INT NULL DEFAULT 0,
+        `revives_done` INT NULL DEFAULT 0,
+        `teleports_done` INT NULL DEFAULT 0,
+        `spectates_done` INT NULL DEFAULT 0,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `uniq_staff_day` (`staff_license`, `date_ref`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ]=]))
     MySQL.query.await(([=[
         CREATE TABLE IF NOT EXISTS `%s` (
             `id` INT NOT NULL AUTO_INCREMENT,
@@ -197,17 +237,25 @@ function P.EnsureTables()
             `message` TEXT NULL,
             `status` VARCHAR(32) NOT NULL DEFAULT 'pendente',
             `priority` VARCHAR(32) NULL DEFAULT 'normal',
+            `waiting_on` VARCHAR(24) NULL DEFAULT 'staff',
             `accepted_by_src` INT NULL,
             `accepted_by_name` VARCHAR(255) NULL,
             `accepted_at` TIMESTAMP NULL DEFAULT NULL,
+            `claimed_by_license` VARCHAR(80) NULL,
             `closed_by_src` INT NULL,
             `closed_by_name` VARCHAR(255) NULL,
             `closed_at` TIMESTAMP NULL DEFAULT NULL,
+            `closed_reason` VARCHAR(255) NULL,
             `response` TEXT NULL,
+            `tags` VARCHAR(255) NULL,
+            `last_message_at` TIMESTAMP NULL DEFAULT NULL,
+            `last_message_by` VARCHAR(24) NULL,
+            `reopened_count` INT NULL DEFAULT 0,
             `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             KEY `idx_status` (`status`),
+            KEY `idx_priority` (`priority`),
             KEY `idx_player_license` (`player_license`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]=]):format(Config.ReportTable or 'staff_reports'))
@@ -228,6 +276,23 @@ function P.EnsureTables()
             KEY `idx_sender_type` (`sender_type`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]=]):format(Config.ReportMessagesTable or 'staff_report_messages'))
+
+    local reportTable = Config.ReportTable or 'staff_reports'
+    local alters = {
+        ("ALTER TABLE `%s` ADD COLUMN `waiting_on` VARCHAR(24) NULL DEFAULT 'staff' AFTER `priority`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `claimed_by_license` VARCHAR(80) NULL AFTER `accepted_at`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `closed_reason` VARCHAR(255) NULL AFTER `closed_at`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `tags` VARCHAR(255) NULL AFTER `response`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `last_message_at` TIMESTAMP NULL DEFAULT NULL AFTER `tags`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `last_message_by` VARCHAR(24) NULL AFTER `last_message_at`"):format(reportTable),
+        ("ALTER TABLE `%s` ADD COLUMN `reopened_count` INT NULL DEFAULT 0 AFTER `last_message_by`"):format(reportTable)
+    }
+
+    for _, sql in ipairs(alters) do
+        pcall(function()
+            MySQL.query.await(sql)
+        end)
+    end
 end
 
 CreateThread(function()
@@ -246,7 +311,7 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
     local players, staffOnline = P.GetOnlinePlayersData()
     local totalBans = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.BanTable)) or 0
     local totalWarns = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.WarnTable)) or 0
-    local openReports = MySQL.scalar.await(([[SELECT COUNT(*) FROM `%s` WHERE status IN ('pendente', 'em_atendimento')]]):format(Config.ReportTable or 'staff_reports')) or 0
+    local openReports = MySQL.scalar.await(([[SELECT COUNT(*) FROM `%s` WHERE status IN ('pendente', 'em_atendimento', 'aguardando_player', 'aguardando_staff')]]):format(Config.ReportTable or 'staff_reports')) or 0
     local reportRows = P.FetchRecentReports(25)
     local logRows = P.FetchRecentLogs(40)
     local commandRows = MySQL.query.await(('SELECT * FROM `%s` WHERE category = ? ORDER BY id DESC LIMIT 10'):format(Config.LogTable or 'staff_logs'), { 'command' }) or {}

@@ -29,6 +29,7 @@ server_scripts {
     'server/main.lua',
     'server/core/permissions.lua',
     'server/core/logs.lua',
+    'server/core/staff_duty.lua',
     'server/core/reports.lua',
     'server/core/staff_roles.lua',
     'server/core/actions.lua',

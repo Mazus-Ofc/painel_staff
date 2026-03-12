@@ -316,24 +316,72 @@ function P.HandleAction(src, payload)
         actionLog('communication', msg, {})
 
     elseif action == 'replyReport' then
-        if not P.RequireAction(src, 'staffchat') then return end
-        local msg = tostring(payload.message or '')
-        if msg == '' then return P.Notify(src, 'Mensagem inválida.', 'error') end
-        local reportId = tonumber(payload.reportId or 0) or 0
-        if reportId <= 0 then return P.Notify(src, 'Report inválido.', 'error') end
-        MySQL.update.await(('UPDATE `%s` SET response = ?, status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = IFNULL(accepted_at, NOW()) WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { msg, 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
-        P.AddReportMessage(reportId, 'admin', src, msg, { action = 'reply' })
-        P.Notify(src, 'Resposta enviada no atendimento.', 'success')
-        actionLog('report', msg, { target = targetPlayer and targetPlayer.PlayerData.source or nil, reportId = reportId })
+    if not P.RequireAction(src, 'staffchat') then return end
+
+    local msg = tostring(payload.message or ''):sub(1, 500)
+    if msg == '' then
+        return P.Notify(src, 'Mensagem inválida.', 'error')
+    end
+
+    local reportId = tonumber(payload.reportId or 0) or 0
+    if reportId <= 0 then
+        return P.Notify(src, 'Report inválido.', 'error')
+    end
+
+    local reportRow = P.GetReportById(reportId)
+    if not reportRow then
+        return P.Notify(src, 'Report não encontrado.', 'error')
+    end
+
+    local adminPlayer = QBCore.Functions.GetPlayer(src)
+    local adminLicense = (adminPlayer and adminPlayer.PlayerData.license) or P.GetIdentifierSafe(src, 'license') or '-'
+
+    if not reportRow.accepted_by_src or tonumber(reportRow.accepted_by_src or 0) <= 0 then
+        P.TouchReport(reportId, {
+            status = 'em_atendimento',
+            waitingOn = 'player',
+            acceptedBySrc = src,
+            acceptedByName = GetPlayerName(src) or ('ID ' .. tostring(src)),
+            claimedByLicense = adminLicense,
+            response = msg
+        })
+    else
+        P.TouchReport(reportId, {
+            response = msg
+        })
+    end
+
+    P.AddReportMessage(reportId, 'admin', src, msg, { action = 'reply' })
+    P.Notify(src, 'Resposta enviada no atendimento.', 'success')
+    actionLog('report', msg, { reportId = reportId })
 
     elseif action == 'reportAccept' then
-        if not P.RequireAction(src, 'staffchat') then return end
-        local reportId = tonumber(payload.reportId or 0) or 0
-        if reportId <= 0 then return P.Notify(src, 'Report inválido.', 'error') end
-        MySQL.update.await(('UPDATE `%s` SET status = ?, accepted_by_src = ?, accepted_by_name = ?, accepted_at = NOW() WHERE id = ?'):format(Config.ReportTable or 'staff_reports'), { 'em_atendimento', src, GetPlayerName(src) or ('ID ' .. tostring(src)), reportId })
-        P.AddReportMessage(reportId, 'system', 0, ('Atendimento assumido por %s.'):format(GetPlayerName(src) or ('ID ' .. tostring(src))), { action = 'accept', admin = src })
-        P.Notify(src, ('Report #%d assumido.'):format(reportId), 'success')
-        actionLog('report', 'Assumiu report.', { reportId = reportId })
+    if not P.RequireAction(src, 'staffchat') then return end
+
+    local reportId = tonumber(payload.reportId or 0) or 0
+    if reportId <= 0 then
+        return P.Notify(src, 'Report inválido.', 'error')
+    end
+
+    local adminPlayer = QBCore.Functions.GetPlayer(src)
+    local adminLicense = (adminPlayer and adminPlayer.PlayerData.license) or P.GetIdentifierSafe(src, 'license') or '-'
+
+    P.TouchReport(reportId, {
+        status = 'em_atendimento',
+        waitingOn = 'player',
+        acceptedBySrc = src,
+        acceptedByName = GetPlayerName(src) or ('ID ' .. tostring(src)),
+        claimedByLicense = adminLicense,
+        forceAcceptedAt = true
+    })
+
+    P.AddReportMessage(reportId, 'system', 0, ('Atendimento assumido por %s.'):format(GetPlayerName(src) or ('ID ' .. tostring(src))), {
+        action = 'accept',
+        admin = src
+    })
+
+    P.Notify(src, ('Report #%d assumido.'):format(reportId), 'success')
+    actionLog('report', 'Assumiu report.', { reportId = reportId })
 
     elseif action == 'reportClose' then
     if not P.RequireAction(src, 'staffchat') then return end
@@ -343,27 +391,27 @@ function P.HandleAction(src, payload)
         return P.Notify(src, 'Report inválido.', 'error')
     end
 
-    local status = tostring(payload.status or 'resolvido'):lower()
+    local status = P.NormalizeReportStatus(payload.status or 'resolvido', 'resolvido')
     local note = tostring(payload.note or ''):sub(1, 500)
+    local closeReason = tostring(payload.closedReason or payload.reason or status):sub(1, 255)
 
     local allowedStatus = {
         resolvido = true,
         recusado = true,
-        cancelado = true,
-        finalizado = true
+        cancelado = true
     }
 
     if not allowedStatus[status] then
         return P.Notify(src, 'Status inválido.', 'error')
     end
 
-    MySQL.update.await(("UPDATE `%s` SET status = ?, closed_by_src = ?, closed_by_name = ?, closed_at = NOW(), response = CASE WHEN ? = '' THEN response ELSE ? END WHERE id = ?"):format(Config.ReportTable or "staff_reports"), {
-        status,
-        src,
-        GetPlayerName(src) or ("ID " .. tostring(src)),
-        note,
-        note,
-        reportId
+    P.TouchReport(reportId, {
+        status = status,
+        waitingOn = 'none',
+        closedBySrc = src,
+        closedByName = GetPlayerName(src) or ('ID ' .. tostring(src)),
+        closedReason = closeReason,
+        response = note ~= '' and note or nil
     })
 
     if note ~= '' then
@@ -373,7 +421,8 @@ function P.HandleAction(src, payload)
     P.AddReportMessage(reportId, 'system', 0, ('Atendimento finalizado com status: %s.'):format(status), {
         action = 'close',
         status = status,
-        note = note
+        note = note,
+        closedReason = closeReason
     })
 
     P.Notify(src, ('Report #%d finalizado.'):format(reportId), 'success')

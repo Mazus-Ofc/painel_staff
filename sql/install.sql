@@ -54,20 +54,27 @@ CREATE TABLE IF NOT EXISTS `staff_reports` (
   `message` TEXT NULL,
   `status` VARCHAR(32) NOT NULL DEFAULT 'pendente',
   `priority` VARCHAR(32) NULL DEFAULT 'normal',
+  `waiting_on` VARCHAR(24) NULL DEFAULT 'staff',
   `accepted_by_src` INT NULL,
   `accepted_by_name` VARCHAR(255) NULL,
   `accepted_at` TIMESTAMP NULL DEFAULT NULL,
+  `claimed_by_license` VARCHAR(80) NULL,
   `closed_by_src` INT NULL,
   `closed_by_name` VARCHAR(255) NULL,
   `closed_at` TIMESTAMP NULL DEFAULT NULL,
+  `closed_reason` VARCHAR(255) NULL,
   `response` TEXT NULL,
+  `tags` VARCHAR(255) NULL,
+  `last_message_at` TIMESTAMP NULL DEFAULT NULL,
+  `last_message_by` VARCHAR(24) NULL,
+  `reopened_count` INT NULL DEFAULT 0,
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`),
+  KEY `idx_priority` (`priority`),
   KEY `idx_player_license` (`player_license`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 CREATE TABLE IF NOT EXISTS `staff_report_messages` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -81,4 +88,40 @@ CREATE TABLE IF NOT EXISTS `staff_report_messages` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_report_id` (`report_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `staff_duty_logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `staff_src` INT NULL,
+  `staff_name` VARCHAR(255) NULL,
+  `staff_license` VARCHAR(80) NOT NULL,
+  `role` VARCHAR(64) NULL,
+  `action` VARCHAR(24) NOT NULL,
+  `status` VARCHAR(32) NULL,
+  `started_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `ended_at` TIMESTAMP NULL DEFAULT NULL,
+  `duration_seconds` INT NULL DEFAULT 0,
+  `date_ref` DATE NULL,
+  `metadata` LONGTEXT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_staff_license` (`staff_license`),
+  KEY `idx_action` (`action`),
+  KEY `idx_date_ref` (`date_ref`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `staff_daily_stats` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `staff_license` VARCHAR(80) NOT NULL,
+  `staff_name` VARCHAR(255) NULL,
+  `date_ref` DATE NOT NULL,
+  `seconds_on_duty` INT NULL DEFAULT 0,
+  `reports_handled` INT NULL DEFAULT 0,
+  `reports_closed` INT NULL DEFAULT 0,
+  `warns_applied` INT NULL DEFAULT 0,
+  `bans_applied` INT NULL DEFAULT 0,
+  `revives_done` INT NULL DEFAULT 0,
+  `teleports_done` INT NULL DEFAULT 0,
+  `spectates_done` INT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_staff_day` (`staff_license`, `date_ref`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

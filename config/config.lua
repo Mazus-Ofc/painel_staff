@@ -204,3 +204,51 @@ Config.Wall = {
     TextScale = 0.30,
     ScreenLineSpacing = 0.024
 }
+
+Config.StaffDutyEnabled = true
+
+Config.StaffDuty = {
+    DutyCommand = 'staffon',
+    OffDutyCommand = 'staffoff',
+    DefaultStatus = 'livre',
+    TrackDailyStats = true,
+    RequireDutyForActions = {
+        spectate = true,
+        names = true,
+        blips = true,
+        wall = true,
+        dimension = true,
+        coords = true,
+        vector = true,
+        heading = true,
+        revive = true,
+        gotoPlayer = true,
+        bringPlayer = true,
+        kill = true,
+        heal = true,
+        intoVehicle = true,
+        freeze = true,
+        kick = true,
+        warn = true,
+        announce = true,
+        staffchat = true,
+        spawnVehicle = true,
+        deleteVehicle = true,
+        saveVehicle = true,
+        maxmods = true,
+        inventory = true,
+        clothing = true,
+        setammo = true,
+        setmodel = true,
+        setspeed = true,
+        reporttoggle = true,
+        noclip = true,
+        invisible = true,
+        god = true,
+        ban = true,
+        setPermissions = true,
+        giveWeapon = true,
+        givenuifocus = true,
+        kickall = true
+    }
+}
