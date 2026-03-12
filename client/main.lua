@@ -123,6 +123,12 @@ RegisterNUICallback('clearStaffRoles', function(data, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('getPlayerAdminHistory', function(data, cb)
+    QBCore.Functions.TriggerCallback('mz_staffpanel:server:getPlayerAdminHistory', function(resp)
+        cb(resp or { ok = false })
+    end, tonumber((data or {}).target or 0) or 0)
+end)
+
 RegisterNetEvent('mz_staffpanel:client:teleportToCoords', function(coords)
     SetEntityCoords(PlayerPedId(), coords.x + 0.0, coords.y + 0.0, coords.z + 0.0, false, false, false, false)
 end)

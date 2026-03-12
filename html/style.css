@@ -10,7 +10,6 @@
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   --radius: 18px;
 }
 
@@ -54,9 +53,11 @@ select {
 .modal-box {
   background: var(--panel);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow);
   border-radius: var(--radius);
-  backdrop-filter: blur(18px);
+  overflow: hidden;
+
+  -webkit-backdrop-filter: blur(18px);
+  isolation: isolate;
 }
 
 .sidebar {
@@ -81,7 +82,6 @@ select {
   font-weight: 800;
   border-radius: 16px;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.35);
 }
 
 .brand h1 {
@@ -758,4 +758,59 @@ textarea {
   display: grid;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.admin-history-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.admin-history-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+}
+
+.admin-history-card h4 {
+  margin: 0 0 10px;
+}
+
+.admin-history-list {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.admin-history-item {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--panel-2);
+  display: grid;
+  gap: 4px;
+}
+
+.admin-history-item strong {
+  font-size: 14px;
+}
+
+.admin-history-item span {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.admin-history-item small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1080px) {
+  .admin-history-columns {
+    grid-template-columns: 1fr;
+  }
 }

@@ -289,6 +289,22 @@ function P.CanSendReportNow(src, seconds)
     return true, 0
 end
 
+function P.GetReportsByPlayerLicense(license, limit)
+    license = tostring(license or '')
+    if license == '' or license == '-' then return {} end
+    limit = tonumber(limit or 20) or 20
+
+    local rows = MySQL.query.await(('SELECT * FROM `%s` WHERE player_license = ? ORDER BY id DESC LIMIT %d'):format(Config.ReportTable or 'staff_reports', limit), {
+        license
+    }) or {}
+
+    for _, row in ipairs(rows) do
+        row.tags_list = P.DecodeReportTags and P.DecodeReportTags(row.tags) or {}
+    end
+
+    return rows
+end
+
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getSupportSession', function(src, cb, reportId)
     reportId = tonumber(reportId or 0) or 0
     local reportRow = nil

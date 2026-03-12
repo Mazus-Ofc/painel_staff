@@ -71,6 +71,10 @@ window.AppState = {
     playerName: "",
     values: {},
   },
+  playerAdminHistory: {
+    warns: [],
+    bans: [],
+  },
 };
 
 window.SupportStatusLabels = {
@@ -288,5 +292,19 @@ window.clearActionModalState = function () {
     playerId: null,
     playerName: "",
     values: {},
+  };
+};
+
+window.setPlayerAdminHistory = function (data) {
+  window.AppState.playerAdminHistory = {
+    warns: (data && data.warns) || [],
+    bans: (data && data.bans) || [],
+  };
+};
+
+window.clearPlayerAdminHistory = function () {
+  window.AppState.playerAdminHistory = {
+    warns: [],
+    bans: [],
   };
 };

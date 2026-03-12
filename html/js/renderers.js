@@ -263,23 +263,109 @@ function renderReports() {
 function renderPlayerModal(player) {
   if (!player) return;
 
+  const adminHistory = window.AppState.playerAdminHistory || {};
+  const warns = adminHistory.warns || [];
+  const bans = adminHistory.bans || [];
+
   $("#playerModalSubtitle").textContent =
-    `[${player.id}] ${player.name || "Sem nome"}`;
+    `[${player.online ? player.id : "OFF"}] ${player.name || "Sem nome"}`;
 
   $("#playerInfo").innerHTML = `
-    <div class="info-box"><span>ID</span><strong>${Number(player.id)}</strong></div>
+    <div class="info-box"><span>Status</span><strong>${player.online ? "Online" : "Offline"}</strong></div>
+    <div class="info-box"><span>ID</span><strong>${player.online ? Number(player.id) : "Offline"}</strong></div>
     <div class="info-box"><span>CitizenID</span><strong>${escapeHtml(player.citizenid || "-")}</strong></div>
     <div class="info-box"><span>Job</span><strong>${escapeHtml(player.job || "-")}</strong></div>
     <div class="info-box"><span>Gang</span><strong>${escapeHtml(player.gang || "-")}</strong></div>
     <div class="info-box"><span>Staff</span><strong>${Array.isArray(player.staff) && player.staff.length ? escapeHtml(player.staff.join(", ")) : "-"}</strong></div>
-    <div class="info-box"><span>Ping</span><strong>${Number(player.ping || 0)}</strong></div>
+    <div class="info-box"><span>Ping</span><strong>${player.online ? Number(player.ping || 0) : "-"}</strong></div>
     <div class="info-box"><span>Cash</span><strong>${Number(player.cash || 0)}</strong></div>
     <div class="info-box"><span>Bank</span><strong>${Number(player.bank || 0)}</strong></div>
-    <div class="info-box"><span>Bucket</span><strong>${Number(player.bucket || 0)}</strong></div>
+    <div class="info-box"><span>Bucket</span><strong>${player.online ? Number(player.bucket || 0) : "-"}</strong></div>
     <div class="info-box"><span>Telefone</span><strong>${escapeHtml(player.phone || "-")}</strong></div>
     <div class="info-box"><span>License</span><strong>${escapeHtml(player.license || "-")}</strong></div>
     <div class="info-box"><span>Discord</span><strong>${escapeHtml(player.discord || "-")}</strong></div>
+
+    <div class="player-punishment-box">
+      <h4>Punições do jogador</h4>
+      <div class="player-punishment-grid">
+        <div class="info-box">
+          <span>Total de warns</span>
+          <strong>${Number(player.warnsCount || warns.length || 0)}</strong>
+        </div>
+        <div class="info-box">
+          <span>Total de bans</span>
+          <strong>${Number(player.bansCount || bans.length || 0)}</strong>
+        </div>
+        <div class="info-box">
+          <span>Último warn</span>
+          <strong>${escapeHtml(player.lastWarnAt || "-")}</strong>
+        </div>
+        <div class="info-box">
+          <span>Último ban</span>
+          <strong>${escapeHtml(player.lastBanAt || "-")}</strong>
+        </div>
+        <div class="info-box">
+          <span>Motivo último warn</span>
+          <strong>${escapeHtml(player.lastWarnReason || "-")}</strong>
+        </div>
+        <div class="info-box">
+          <span>Motivo último ban</span>
+          <strong>${escapeHtml(player.lastBanReason || "-")}</strong>
+        </div>
+      </div>
+
+      <div class="admin-history-columns">
+        <div class="admin-history-card">
+          <h4>Warns aplicados</h4>
+          <div class="admin-history-list">
+            ${
+              warns.length
+                ? warns
+                    .map(
+                      (row, index) => `
+                <div class="admin-history-item">
+                  <strong>Warn ${warns.length - index}</strong>
+                  <span>${escapeHtml(row.reason || "-")}</span>
+                  <small>${escapeHtml(row.created_at || "-")}</small>
+                </div>
+              `,
+                    )
+                    .join("")
+                : '<div class="empty">Nenhum warn encontrado.</div>'
+            }
+          </div>
+        </div>
+
+        <div class="admin-history-card">
+          <h4>Bans aplicados</h4>
+          <div class="admin-history-list">
+            ${
+              bans.length
+                ? bans
+                    .map(
+                      (row, index) => `
+                <div class="admin-history-item">
+                  <strong>Ban ${bans.length - index}</strong>
+                  <span>${escapeHtml(row.reason || "-")}</span>
+                  <small>${escapeHtml(row.created_at || "-")}</small>
+                </div>
+              `,
+                    )
+                    .join("")
+                : '<div class="empty">Nenhum ban encontrado.</div>'
+            }
+          </div>
+        </div>
+      </div>
+    </div>
   `;
+
+  if (!player.online) {
+    $("#playerActions").innerHTML = `
+      <div class="empty">Jogador offline. Ações em tempo real indisponíveis.</div>
+    `;
+    return;
+  }
 
   const actionDefs = [
     ["Reviver", "revive"],
@@ -618,6 +704,7 @@ function renderActionModal() {
 
   fieldsWrap.innerHTML = html;
 }
+
 function renderAll() {
   renderDashboard();
   renderPlayers();

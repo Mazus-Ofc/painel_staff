@@ -116,6 +116,15 @@ function P.DeleteWarn(targetSrc, index)
     return true, selected
 end
 
+function P.GetWarnHistoryByLicense(license)
+    license = tostring(license or '')
+    if license == '' or license == '-' then return {} end
+
+    return MySQL.query.await(('SELECT * FROM `%s` WHERE targetIdentifier = ? ORDER BY id DESC'):format(Config.WarnTable), {
+        license
+    }) or {}
+end
+
 function P.HandleAction(src, payload)
     if type(payload) ~= 'table' or not P.CanOpen(src) then return end
 

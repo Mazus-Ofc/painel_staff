@@ -338,3 +338,42 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
         vehiclePreviewLimit = tonumber(Config.VehiclePreviewLimit or 120) or 120
     })
 end)
+
+QBCore.Functions.CreateCallback('mz_staffpanel:server:getPlayerAdminHistory', function(src, cb, targetId)
+    if not P.CanOpen(src) then
+        return cb({ ok = false, error = 'Sem permissão.' })
+    end
+
+    targetId = tonumber(targetId or 0) or 0
+    if targetId <= 0 then
+        return cb({ ok = false, error = 'Jogador inválido.' })
+    end
+
+    --local players = P.GetOnlinePlayersData()
+    local players = select(1, P.GetOnlinePlayersData())
+    local targetPlayer = nil
+
+    for _, row in ipairs(players) do
+        if tonumber(row.id or 0) == targetId then
+            targetPlayer = row
+            break
+        end
+    end
+
+    if not targetPlayer then
+        return cb({ ok = false, error = 'Jogador não encontrado.' })
+    end
+
+    local license = tostring(targetPlayer.license or '')
+    local warns = P.GetWarnHistoryByLicense and P.GetWarnHistoryByLicense(license) or {}
+    local bans = MySQL.query.await(('SELECT * FROM `%s` WHERE license = ? ORDER BY id DESC'):format(Config.BanTable), {
+        license
+    }) or {}
+
+    cb({
+        ok = true,
+        warns = warns,
+        bans = bans,
+        player = targetPlayer
+    })
+end)

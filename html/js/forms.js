@@ -110,7 +110,11 @@ function hideModal(id) {
   if (!el) return;
   el.classList.add("hidden");
 
-  if (id === "playerModal") window.AppState.modals.player = false;
+  //if (id === "playerModal") window.AppState.modals.player = false;
+  if (id === "playerModal") {
+    window.AppState.modals.player = false;
+    window.clearPlayerAdminHistory();
+  }
   if (id === "supportModal") window.AppState.modals.support = false;
   if (id === "staffManagerModal") window.AppState.modals.staffManager = false;
 
@@ -136,6 +140,14 @@ async function openPlayer(playerId) {
 
   window.AppState.selectedPlayer = playerId;
   window.AppState.selectedPlayerData = player;
+
+  const history = await nui("getPlayerAdminHistory", { target: playerId });
+  if (history && history.ok) {
+    window.setPlayerAdminHistory(history);
+  } else {
+    window.clearPlayerAdminHistory();
+  }
+
   window.renderPlayerModal(player);
   showModal("playerModal");
 }
