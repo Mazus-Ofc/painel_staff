@@ -161,7 +161,7 @@ Config.Commands = {
 
     intovehicle = 'intovehicle',
     intovehicleAliases = { 'carroplayer' },
-    inventory = 'inventory',
+    inventory = 'staffinv',
     inventoryAliases = { 'invsee' },
     cloth = 'cloth',
     clothAliases = { 'clothing' },
