@@ -395,6 +395,7 @@ function renderPlayerModal(player) {
     ['Matar', 'kill'],
     ['Congelar', 'freeze'],
     ['Ir até', 'gotoPlayer'],
+    ['Ir coord', 'gotoCoords'],
     ['Trazer', 'bringPlayer'],
     ['Spectar', 'spectate'],
     ['Kick', 'kick'],
@@ -714,6 +715,18 @@ function renderActionModal() {
     html = `
       <label>Dimensão / Bucket</label>
       <input id="actionDimensionValue" class="input" type="number" min="0" value="${escapeHtml(state.values.dimension || "0")}" />
+    `;
+  } else if (state.action === "gotoCoords") {
+    titleEl.textContent = "Ir para coordenada";
+    html = `
+      <label>Coordenada X</label>
+      <input id="actionGotoX" class="input" type="number" step="0.01" value="${escapeHtml(state.values.x || "0.0")}" />
+
+      <label>Coordenada Y</label>
+      <input id="actionGotoY" class="input" type="number" step="0.01" value="${escapeHtml(state.values.y || "0.0")}" />
+
+      <label>Coordenada Z</label>
+      <input id="actionGotoZ" class="input" type="number" step="0.01" value="${escapeHtml(state.values.z || "0.0")}" />
     `;
   } else {
     titleEl.textContent = "Ação";

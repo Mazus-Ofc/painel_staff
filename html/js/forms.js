@@ -36,6 +36,8 @@ function openActionModal(action, player) {
     defaults = { seconds: "86400", reason: "Banido pela staff" };
   } else if (action === "setDimension") {
     defaults = { dimension: "0" };
+  } else if (action === "gotoCoords") {
+    defaults = { x: "0.0", y: "0.0", z: "0.0" };
   }
 
   window.setActionModalState({
@@ -85,6 +87,14 @@ async function confirmActionModal() {
     payload.dimension = Number(
       document.querySelector("#actionDimensionValue")?.value || 0,
     );
+  }
+
+  if (action === "gotoCoords") {
+    payload.coords = {
+      x: Number(document.querySelector("#actionGotoX")?.value || 0),
+      y: Number(document.querySelector("#actionGotoY")?.value || 0),
+      z: Number(document.querySelector("#actionGotoZ")?.value || 0),
+    };
   }
 
   await nui("action", payload);
@@ -212,7 +222,8 @@ async function doPlayerAction(action, playerId) {
     action === "kick" ||
     action === "ban" ||
     action === "warn" ||
-    action === "setDimension"
+    action === "setDimension" ||
+    action === "gotoCoords"
   ) {
     return openActionModal(action, player);
   }

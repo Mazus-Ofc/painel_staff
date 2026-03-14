@@ -9,8 +9,23 @@ P.RegisterAliases(Config.Commands.heal, Config.Commands.healAliases, 'Curar joga
     P.HandleAction(source, { action = 'heal', target = target })
 end, Config.ActionPerms.heal)
 
-P.RegisterAliases(Config.Commands.gotoPlayer, Config.Commands.gotoPlayerAliases, 'Ir até jogador', {{name='id', help='ID do jogador'}}, true, function(source, args)
-    P.HandleAction(source, { action = 'gotoPlayer', target = tonumber(args[1]) })
+P.RegisterAliases(Config.Commands.gotoPlayer, Config.Commands.gotoPlayerAliases, 'Ir até jogador ou coordenada', {
+    {name='id/x', help='ID do jogador ou X'},
+    {name='y', help='Y da coordenada (opcional)'},
+    {name='z', help='Z da coordenada (opcional)'}
+}, true, function(source, args)
+    local a1 = tonumber(args[1])
+    local a2 = tonumber(args[2])
+    local a3 = tonumber(args[3])
+
+    if a1 and a2 and a3 then
+        return P.HandleAction(source, {
+            action = 'gotoCoords',
+            coords = { x = a1, y = a2, z = a3 }
+        })
+    end
+
+    P.HandleAction(source, { action = 'gotoPlayer', target = a1 })
 end, Config.ActionPerms.gotoPlayer)
 
 P.RegisterAliases(Config.Commands.bringPlayer, Config.Commands.bringPlayerAliases, 'Trazer jogador', {{name='id', help='ID do jogador'}}, true, function(source, args)

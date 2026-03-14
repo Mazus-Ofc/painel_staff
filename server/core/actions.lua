@@ -273,14 +273,40 @@ function P.HandleAction(src, payload)
         P.Notify(src, (state and 'Jogador congelado.' or 'Jogador descongelado.'), 'success')
         actionLog('admin_action', state and 'Congelou jogador.' or 'Descongelou jogador.', { target = targetPlayer.PlayerData.source, state = state })
 
-    elseif action == 'gotoPlayer' then
-        if not P.RequireAction(src, action) then return end
-        local ped = GetPlayerPed(targetPlayer.PlayerData.source)
-        if ped == 0 then return P.Notify(src, 'Ped do jogador não encontrado.', 'error') end
-        local coords = GetEntityCoords(ped)
-        TriggerClientEvent('mz_staffpanel:client:teleportToCoords', src, { x = coords.x, y = coords.y, z = coords.z + 1.0 })
-        P.Notify(src, ('Teleportado até ID %s.'):format(targetPlayer.PlayerData.source), 'success')
-        actionLog('admin_action', 'Teleportou até jogador.', { target = targetPlayer.PlayerData.source })
+    elseif action == 'gotoPlayer' or action == 'gotoCoords' then
+        if not P.RequireAction(src, 'gotoPlayer') then return end
+
+        local destination = nil
+        local notifyMsg = nil
+        local logMsg = nil
+        local logMeta = {}
+
+        if action == 'gotoCoords' then
+            local coords = payload.coords or payload
+            local x = tonumber(coords and coords.x)
+            local y = tonumber(coords and coords.y)
+            local z = tonumber(coords and coords.z)
+            if not x or not y or not z then
+                return P.Notify(src, 'Coordenadas inválidas. Use X, Y e Z.', 'error')
+            end
+
+            destination = { x = x + 0.0, y = y + 0.0, z = z + 0.0 }
+            notifyMsg = ('Teleportado para a localização: %.2f, %.2f, %.2f'):format(x, y, z)
+            logMsg = 'Teleportou para coordenadas.'
+            logMeta = { coords = { x = x, y = y, z = z } }
+        else
+            local ped = GetPlayerPed(targetPlayer.PlayerData.source)
+            if ped == 0 then return P.Notify(src, 'Ped do jogador não encontrado.', 'error') end
+            local coords = GetEntityCoords(ped)
+            destination = { x = coords.x, y = coords.y, z = coords.z + 1.0 }
+            notifyMsg = ('Teleportado até ID %s.'):format(targetPlayer.PlayerData.source)
+            logMsg = 'Teleportou até jogador.'
+            logMeta = { target = targetPlayer.PlayerData.source }
+        end
+
+        TriggerClientEvent('mz_staffpanel:client:teleportToCoords', src, destination)
+        P.Notify(src, notifyMsg, 'success')
+        actionLog('admin_action', logMsg, logMeta)
         local adminLicense = P.GetStaffLicense and P.GetStaffLicense(src) or P.GetIdentifierSafe(src, 'license') or '-'
         local adminName = GetPlayerName(src) or ('ID ' .. tostring(src))
         P.AddDailyStat(adminLicense, adminName, 'teleports_done', 1)
