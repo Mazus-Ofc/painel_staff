@@ -205,6 +205,13 @@ function P.EnsureTables()
         pcall(function() MySQL.query.await(("ALTER TABLE `%s` ADD INDEX `idx_status` (`status`)"):format(Config.BanTable)) end)
     end)
 
+    pcall(function()
+        local now = os.time()
+        MySQL.update.await(("UPDATE `%s` SET status = ?, expired_at = COALESCE(expired_at, CURRENT_TIMESTAMP) WHERE (status IS NULL OR status = '' OR status = ?) AND expire > 0 AND expire < 2147483647 AND expire <= ?"):format(Config.BanTable), {
+            'expired', 'active', now
+        })
+    end)
+
     MySQL.query.await(([=[
         CREATE TABLE IF NOT EXISTS `%s` (
             `id` INT NOT NULL AUTO_INCREMENT,

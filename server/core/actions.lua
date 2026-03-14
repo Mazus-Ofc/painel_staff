@@ -165,7 +165,18 @@ function P.GetWarnHistoryByLicense(license)
 end
 
 
+
+local function syncExpiredBans()
+    local now = os.time()
+    pcall(function()
+        MySQL.update.await(("UPDATE `%s` SET status = ?, expired_at = COALESCE(expired_at, CURRENT_TIMESTAMP) WHERE (status IS NULL OR status = '' OR status = ?) AND expire > 0 AND expire < 2147483647 AND expire <= ?"):format(Config.BanTable), {
+            'expired', 'active', now
+        })
+    end)
+end
+
 function P.FetchBansPage(page, pageSize, filters)
+    syncExpiredBans()
     page = math.max(1, tonumber(page or 1) or 1)
     pageSize = math.max(1, math.min(100, tonumber(pageSize or 15) or 15))
     filters = type(filters) == 'table' and filters or {}
