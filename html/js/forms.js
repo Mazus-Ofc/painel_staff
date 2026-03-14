@@ -11,6 +11,14 @@ const nui = async (action, data = {}) => {
   }
 };
 
+
+function parseCoordValue(value) {
+  if (value === null || value === undefined) return 0;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function openTab(tab) {
   window.AppState.currentTab = tab;
 
@@ -91,9 +99,9 @@ async function confirmActionModal() {
 
   if (action === "gotoCoords") {
     payload.coords = {
-      x: Number(document.querySelector("#actionGotoX")?.value || 0),
-      y: Number(document.querySelector("#actionGotoY")?.value || 0),
-      z: Number(document.querySelector("#actionGotoZ")?.value || 0),
+      x: parseCoordValue(document.querySelector("#actionGotoX")?.value || 0),
+      y: parseCoordValue(document.querySelector("#actionGotoY")?.value || 0),
+      z: parseCoordValue(document.querySelector("#actionGotoZ")?.value || 0),
     };
   }
 

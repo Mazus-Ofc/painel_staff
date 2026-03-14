@@ -9,14 +9,21 @@ P.RegisterAliases(Config.Commands.heal, Config.Commands.healAliases, 'Curar joga
     P.HandleAction(source, { action = 'heal', target = target })
 end, Config.ActionPerms.heal)
 
+local function parseCoordArg(value)
+    if value == nil then return nil end
+    value = tostring(value):gsub(',', ''):gsub('%s+', '')
+    if value == '' then return nil end
+    return tonumber(value)
+end
+
 P.RegisterAliases(Config.Commands.gotoPlayer, Config.Commands.gotoPlayerAliases, 'Ir até jogador ou coordenada', {
     {name='id/x', help='ID do jogador ou X'},
     {name='y', help='Y da coordenada (opcional)'},
     {name='z', help='Z da coordenada (opcional)'}
 }, true, function(source, args)
-    local a1 = tonumber(args[1])
-    local a2 = tonumber(args[2])
-    local a3 = tonumber(args[3])
+    local a1 = parseCoordArg(args[1])
+    local a2 = parseCoordArg(args[2])
+    local a3 = parseCoordArg(args[3])
 
     if a1 and a2 and a3 then
         return P.HandleAction(source, {
