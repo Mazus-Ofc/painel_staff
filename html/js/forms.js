@@ -386,6 +386,93 @@ async function staffClearRoles() {
   }, 200);
 }
 
+
+let logsFilterDebounce = null;
+let bansFilterDebounce = null;
+
+function getInputFocusState() {
+  const active = document.activeElement;
+  if (!active || !active.id) return null;
+  return {
+    id: active.id,
+    start: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+    end: typeof active.selectionEnd === 'number' ? active.selectionEnd : null,
+  };
+}
+
+function restoreInputFocusState(focusState) {
+  if (!focusState || !focusState.id) return;
+  requestAnimationFrame(() => {
+    const el = document.getElementById(focusState.id);
+    if (!el) return;
+    el.focus();
+    if (typeof focusState.start === 'number' && typeof el.setSelectionRange === 'function') {
+      el.setSelectionRange(focusState.start, focusState.end ?? focusState.start);
+    }
+  });
+}
+
+function debounceLogsRefresh(page = 1) {
+  clearTimeout(logsFilterDebounce);
+  logsFilterDebounce = setTimeout(() => refreshLogsPage(page), 180);
+}
+
+function debounceBansRefresh(page = 1) {
+  clearTimeout(bansFilterDebounce);
+  bansFilterDebounce = setTimeout(() => refreshBansPage(page), 180);
+}
+
+async function refreshLogsPage(page = null) {
+  const focusState = getInputFocusState();
+  const current = window.AppState.logsPage || {};
+  const filters = {
+    category: document.querySelector('#logsFilterCategory') ? document.querySelector('#logsFilterCategory').value : (current.filters?.category ?? ''),
+    action: document.querySelector('#logsFilterAction') ? document.querySelector('#logsFilterAction').value : (current.filters?.action ?? ''),
+    actor: document.querySelector('#logsFilterActor') ? document.querySelector('#logsFilterActor').value : (current.filters?.actor ?? ''),
+  };
+
+  window.AppState.logsPage = Object.assign({}, current, { filters });
+
+  const res = await nui('getLogsPage', {
+    page: Number(page || current.page || 1),
+    pageSize: Number(current.pageSize || 20),
+    filters,
+  });
+
+  if (res && res.ok) {
+    window.AppState.logs = res.rows || [];
+    window.AppState.logsPage = res;
+    window.renderLogs?.() || window.renderAll();
+    restoreInputFocusState(focusState);
+  }
+}
+
+async function refreshBansPage(page = null) {
+  const focusState = getInputFocusState();
+  const current = window.AppState.bansPage || {};
+  const filters = {
+    status: document.querySelector('#bansFilterStatus') ? document.querySelector('#bansFilterStatus').value : (current.filters?.status ?? ''),
+    name: document.querySelector('#bansFilterName') ? document.querySelector('#bansFilterName').value : (current.filters?.name ?? ''),
+    reason: document.querySelector('#bansFilterReason') ? document.querySelector('#bansFilterReason').value : (current.filters?.reason ?? ''),
+    bannedby: document.querySelector('#bansFilterAuthor') ? document.querySelector('#bansFilterAuthor').value : (current.filters?.bannedby ?? ''),
+  };
+
+  window.AppState.bansPage = Object.assign({}, current, { filters });
+
+  const res = await nui('getBansPage', {
+    page: Number(page || current.page || 1),
+    pageSize: Number(current.pageSize || 15),
+    filters,
+  });
+
+  if (res && res.ok) {
+    window.AppState.bans = res.rows || [];
+    window.AppState.bansPage = res;
+    window.renderBans?.() || window.renderAll();
+    restoreInputFocusState(focusState);
+  }
+}
+
 function bindStaticEvents() {
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -393,6 +480,12 @@ function bindStaticEvents() {
 
       if (btn.dataset.tab === "staff") {
         await refreshStaffDuty();
+      }
+      if (btn.dataset.tab === "logs") {
+        await refreshLogsPage(1);
+      }
+      if (btn.dataset.tab === "bans") {
+        await refreshBansPage(1);
       }
     });
   });
@@ -447,6 +540,31 @@ function bindStaticEvents() {
       window.renderReports?.() || window.renderAll();
     });
 
+
+
+  ['#logsFilterCategory', '#logsFilterAction', '#logsFilterActor'].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener('input', () => debounceLogsRefresh(1));
+  });
+  document.querySelector('#logsClearFilters')?.addEventListener('click', async () => {
+    ['#logsFilterCategory', '#logsFilterAction', '#logsFilterActor'].forEach((selector) => {
+      const el = document.querySelector(selector);
+      if (el) el.value = '';
+    });
+    await refreshLogsPage(1);
+  });
+
+  ['#bansFilterName', '#bansFilterReason', '#bansFilterAuthor'].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener('input', () => debounceBansRefresh(1));
+  });
+  document.querySelector('#bansFilterStatus')?.addEventListener('change', () => refreshBansPage(1));
+  document.querySelector('#bansClearFilters')?.addEventListener('click', async () => {
+    ['#bansFilterStatus', '#bansFilterName', '#bansFilterReason', '#bansFilterAuthor'].forEach((selector) => {
+      const el = document.querySelector(selector);
+      if (el) el.value = '';
+    });
+    await refreshBansPage(1);
+  });
+
   document
     .querySelector("#supportSendBtn")
     ?.addEventListener("click", supportSendMessage);
@@ -478,6 +596,18 @@ function bindStaticEvents() {
   });
 
   document.addEventListener("click", async (e) => {
+    const logsPageBtn = e.target.closest('.logs-page-btn');
+    if (logsPageBtn) {
+      await refreshLogsPage(Number(logsPageBtn.dataset.page || 1));
+      return;
+    }
+
+    const bansPageBtn = e.target.closest('.bans-page-btn');
+    if (bansPageBtn) {
+      await refreshBansPage(Number(bansPageBtn.dataset.page || 1));
+      return;
+    }
+
     const playerBtn = e.target.closest(".player-open-btn");
     if (playerBtn) {
       await openPlayer(playerBtn.dataset.playerId);
@@ -529,6 +659,26 @@ function bindStaticEvents() {
     }
   });
 
+
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('#logsFilterCategory, #logsFilterAction, #logsFilterActor')) {
+      debounceLogsRefresh(1);
+      return;
+    }
+
+    if (e.target.matches('#bansFilterName, #bansFilterReason, #bansFilterAuthor')) {
+      debounceBansRefresh(1);
+      return;
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('#bansFilterStatus')) {
+      debounceBansRefresh(1);
+      return;
+    }
+  });
+
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       if (window.AppState.modals.staffManager)
@@ -549,3 +699,6 @@ window.refreshPanel = refreshPanel;
 window.bindStaticEvents = bindStaticEvents;
 window.showModal = showModal;
 window.hideModal = hideModal;
+
+window.refreshLogsPage = refreshLogsPage;
+window.refreshBansPage = refreshBansPage;

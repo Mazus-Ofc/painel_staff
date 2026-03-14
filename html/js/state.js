@@ -15,7 +15,9 @@ window.AppState = {
   currentTab: "dashboard",
   reports: [],
   logs: [],
+  logsPage: { rows: [], total: 0, page: 1, pageSize: 20, totalPages: 1, filters: { category: '', action: '', actor: '' } },
   bans: [],
+  bansPage: { rows: [], total: 0, page: 1, pageSize: 15, totalPages: 1, filters: { status: '', name: '', reason: '', bannedby: '' } },
   stats: {},
   supportOnly: false,
   supportSession: null,
@@ -237,7 +239,9 @@ window.hydrateState = function (data) {
     vehicles: data.vehicles || [],
     reports: data.reports || [],
     logs: data.logs || [],
+    logsPage: data.logsPage || { rows: data.logs || [], total: (data.logs || []).length, page: 1, pageSize: 20, totalPages: 1, filters: { category: '', action: '', actor: '' } },
     bans: data.bans || [],
+    bansPage: data.bansPage || { rows: data.bans || [], total: (data.bans || []).length, page: 1, pageSize: 15, totalPages: 1, filters: { status: '', name: '', reason: '', bannedby: '' } },
     stats: data.stats || {},
   });
 

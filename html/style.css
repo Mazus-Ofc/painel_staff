@@ -483,7 +483,7 @@ textarea {
   width: min(96vw, 560px);
 }
 .modal-box.large {
-  width: min(96vw, 980px);
+  width: min(96vw, 1120px);
 }
 .modal-box.xlarge {
   width: min(96vw, 1320px);
@@ -525,6 +525,14 @@ textarea {
   color: var(--muted);
   font-size: 12px;
   margin-bottom: 4px;
+}
+
+.info-box strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .modal-section {
@@ -664,10 +672,13 @@ textarea {
   }
 
   .player-info-grid,
-  .action-grid {
+  .action-grid,
+  .player-basic-grid,
+  .player-punishment-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
 
 @media (max-width: 1080px) {
   .app {
@@ -685,12 +696,25 @@ textarea {
   .vehicle-grid,
   .stats-grid,
   .player-info-grid,
-  .action-grid {
+  .action-grid,
+  .player-basic-grid,
+  .player-punishment-grid,
+  .filter-toolbar-logs,
+  .filter-toolbar-bans {
     grid-template-columns: 1fr;
   }
 
   .report-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+
+  .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
@@ -812,5 +836,124 @@ textarea {
 @media (max-width: 1080px) {
   .admin-history-columns {
     grid-template-columns: 1fr;
+  }
+}
+
+
+.filter-toolbar {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.filter-toolbar-logs {
+  grid-template-columns: 1fr 1fr 1fr auto;
+}
+
+.filter-toolbar-bans {
+  grid-template-columns: 180px 1fr 1fr 1fr auto;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.pagination-info {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pagination-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.table-head-logs,
+.table-row-logs {
+  grid-template-columns: 70px 0.9fr 0.9fr 1fr 1fr 1.6fr 1fr;
+}
+
+.table-head-bans,
+.table-row-bans {
+  grid-template-columns: 70px 1fr 110px 1.6fr 1fr 1fr 1fr;
+}
+
+.player-modal-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.soft-section {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.soft-section h4 {
+  margin: 0 0 14px;
+}
+
+.player-basic-grid,
+.player-punishment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.span-full {
+  grid-column: 1 / -1;
+}
+
+
+#playerInfo.player-info-grid {
+  grid-template-columns: 1fr;
+  margin-bottom: 0;
+}
+
+.player-info-grid > .player-modal-layout {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.player-basic-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.player-punishment-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.player-punishment-grid .span-2 {
+  grid-column: span 2;
+}
+
+.player-punishment-grid .span-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1280px) {
+  .player-basic-grid,
+  .player-punishment-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .player-basic-grid,
+  .player-punishment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

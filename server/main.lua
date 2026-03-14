@@ -122,7 +122,8 @@ function P.GetOnlinePlayersData()
             discord = identifiers.discord,
             steam = identifiers.steam,
             fivem = identifiers.fivem,
-            coords = { x = coords.x, y = coords.y, z = coords.z }
+            coords = { x = coords.x, y = coords.y, z = coords.z },
+            online = true
         }
     end
 
@@ -192,6 +193,14 @@ function P.EnsureTables()
             KEY `idx_expire` (`expire`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ]=]):format(Config.BanTable))
+
+
+    pcall(function()
+        MySQL.query.await(("ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS `status` VARCHAR(24) NULL DEFAULT 'active'"):format(Config.BanTable))
+        MySQL.query.await(('ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS `expired_at` TIMESTAMP NULL DEFAULT NULL'):format(Config.BanTable))
+        MySQL.query.await(('ALTER TABLE `%s` ADD COLUMN IF NOT EXISTS `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'):format(Config.BanTable))
+        pcall(function() MySQL.query.await(("ALTER TABLE `%s` ADD INDEX `idx_status` (`status`)"):format(Config.BanTable)) end)
+    end)
 
     MySQL.query.await(([=[
         CREATE TABLE IF NOT EXISTS `%s` (
@@ -313,9 +322,9 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
     local totalWarns = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.WarnTable)) or 0
     local openReports = MySQL.scalar.await(([[SELECT COUNT(*) FROM `%s` WHERE status IN ('pendente', 'em_atendimento', 'aguardando_player', 'aguardando_staff')]]):format(Config.ReportTable or 'staff_reports')) or 0
     local reportRows = P.FetchRecentReports(25)
-    local logRows = P.FetchRecentLogs(40)
+    local logsPage = P.FetchLogsPage(1, 20, {})
     local commandRows = MySQL.query.await(('SELECT * FROM `%s` WHERE category = ? ORDER BY id DESC LIMIT 10'):format(Config.LogTable or 'staff_logs'), { 'command' }) or {}
-    local banRows = MySQL.query.await(('SELECT * FROM `%s` ORDER BY id DESC LIMIT 20'):format(Config.BanTable)) or {}
+    local banPage = P.FetchBansPage and P.FetchBansPage(1, 15, {}) or { rows = {}, total = 0, page = 1, pageSize = 15, totalPages = 1, filters = {} }
 
     cb({
         ok = true,
@@ -325,9 +334,11 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
         players = players,
         vehicles = P.BuildPermMap(src).spawnVehicle and P.GetVehicleList() or {},
         reports = reportRows,
-        logs = logRows,
+        logs = logsPage.rows,
+        logsPage = logsPage,
         recentCommands = commandRows,
-        bans = banRows,
+        bans = banPage.rows,
+        bansPage = banPage,
         stats = {
             online = #players,
             staffOnline = staffOnline,
@@ -376,4 +387,24 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getPlayerAdminHistory', fu
         bans = bans,
         player = targetPlayer
     })
+end)
+
+QBCore.Functions.CreateCallback('mz_staffpanel:server:getLogsPage', function(src, cb, page, pageSize, filters)
+    if not P.CanOpen(src) then
+        return cb({ ok = false, error = 'Sem permissão.' })
+    end
+
+    local payload = P.FetchLogsPage(page, pageSize, filters)
+    payload.ok = true
+    cb(payload)
+end)
+
+QBCore.Functions.CreateCallback('mz_staffpanel:server:getBansPage', function(src, cb, page, pageSize, filters)
+    if not P.CanOpen(src) then
+        return cb({ ok = false, error = 'Sem permissão.' })
+    end
+
+    local payload = P.FetchBansPage(page, pageSize, filters)
+    payload.ok = true
+    cb(payload)
 end)

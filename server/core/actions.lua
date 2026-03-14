@@ -60,8 +60,8 @@ function P.BanPlayerByAdmin(src, targetSrc, seconds, reason)
         error('Nenhum identificador válido encontrado para o alvo do ban.')
     end
 
-    MySQL.insert.await(('INSERT INTO `%s` (name, license, discord, ip, reason, expire, bannedby) VALUES (?, ?, ?, ?, ?, ?, ?)'):format(Config.BanTable), {
-        name, license, discord, ip, reason, expiresAt, bannedBy
+    MySQL.insert.await(('INSERT INTO `%s` (name, license, discord, ip, reason, expire, bannedby, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'):format(Config.BanTable), {
+        name, license, discord, ip, reason, expiresAt, bannedBy, 'active'
     })
 
     TriggerClientEvent('chat:addMessage', -1, {
@@ -123,6 +123,59 @@ function P.GetWarnHistoryByLicense(license)
     return MySQL.query.await(('SELECT * FROM `%s` WHERE targetIdentifier = ? ORDER BY id DESC'):format(Config.WarnTable), {
         license
     }) or {}
+end
+
+
+function P.FetchBansPage(page, pageSize, filters)
+    page = math.max(1, tonumber(page or 1) or 1)
+    pageSize = math.max(1, math.min(100, tonumber(pageSize or 15) or 15))
+    filters = type(filters) == 'table' and filters or {}
+
+    local clauses = { '1=1' }
+    local params = {}
+
+    local function addLike(column, value)
+        value = tostring(value or ''):gsub('^%s+', ''):gsub('%s+$', '')
+        if value ~= '' then
+            clauses[#clauses + 1] = ('LOWER(%s) LIKE ?'):format(column)
+            params[#params + 1] = '%%' .. value:lower() .. '%%'
+        end
+    end
+
+    addLike('name', filters.name)
+    addLike('reason', filters.reason)
+    addLike('bannedby', filters.bannedby)
+
+    local status = tostring(filters.status or ''):gsub('^%s+', ''):gsub('%s+$', '')
+    if status ~= '' and status ~= 'all' then
+        clauses[#clauses + 1] = 'status = ?'
+        params[#params + 1] = status
+    end
+
+    local whereSql = table.concat(clauses, ' AND ')
+    local total = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s` WHERE %s'):format(Config.BanTable, whereSql), params) or 0
+    local offset = (page - 1) * pageSize
+
+    local queryParams = {}
+    for i = 1, #params do queryParams[i] = params[i] end
+    queryParams[#queryParams + 1] = pageSize
+    queryParams[#queryParams + 1] = offset
+
+    local rows = MySQL.query.await(('SELECT * FROM `%s` WHERE %s ORDER BY id DESC LIMIT ? OFFSET ?'):format(Config.BanTable, whereSql), queryParams) or {}
+
+    return {
+        rows = rows,
+        total = tonumber(total) or 0,
+        page = page,
+        pageSize = pageSize,
+        totalPages = math.max(1, math.ceil((tonumber(total) or 0) / pageSize)),
+        filters = {
+            status = status,
+            name = tostring(filters.name or ''),
+            reason = tostring(filters.reason or ''),
+            bannedby = tostring(filters.bannedby or '')
+        }
+    }
 end
 
 function P.HandleAction(src, payload)
@@ -759,7 +812,8 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
         return
     end
 
-    local query = ('SELECT * FROM `%s` WHERE (%s) ORDER BY id DESC LIMIT 1'):format(Config.BanTable, table.concat(clauses, ' OR '))
+    local query = ('SELECT * FROM `%s` WHERE status = ? AND (%s) ORDER BY id DESC LIMIT 1'):format(Config.BanTable, table.concat(clauses, ' OR '))
+    table.insert(params, 1, 'active')
     local ban = MySQL.single.await(query, params)
     if not ban then
         deferrals.done()
@@ -768,7 +822,7 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
 
     local expire = tonumber(ban.expire or 0) or 0
     if expire > 0 and expire < 2147483647 and expire <= now then
-        MySQL.query.await(('DELETE FROM `%s` WHERE id = ?'):format(Config.BanTable), { ban.id })
+        MySQL.query.await(('UPDATE `%s` SET status = ?, expired_at = CURRENT_TIMESTAMP WHERE id = ?'):format(Config.BanTable), { 'expired', ban.id })
         deferrals.done()
         return
     end

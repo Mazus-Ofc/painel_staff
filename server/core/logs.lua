@@ -60,6 +60,51 @@ function P.FetchRecentLogs(limit)
     return MySQL.query.await(('SELECT * FROM `%s` ORDER BY id DESC LIMIT %d'):format(Config.LogTable or 'staff_logs', tonumber(limit or 20) or 20)) or {}
 end
 
+function P.FetchLogsPage(page, pageSize, filters)
+    page = math.max(1, tonumber(page or 1) or 1)
+    pageSize = math.max(1, math.min(100, tonumber(pageSize or 20) or 20))
+    filters = type(filters) == 'table' and filters or {}
+
+    local clauses = { '1=1' }
+    local params = {}
+
+    local function addLike(column, value)
+        value = tostring(value or ''):gsub('^%s+', ''):gsub('%s+$', '')
+        if value ~= '' then
+            clauses[#clauses + 1] = ('LOWER(%s) LIKE ?'):format(column)
+            params[#params + 1] = '%%' .. value:lower() .. '%%'
+        end
+    end
+
+    addLike('category', filters.category)
+    addLike('action', filters.action)
+    addLike('actor_name', filters.actor)
+
+    local whereSql = table.concat(clauses, ' AND ')
+    local total = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s` WHERE %s'):format(Config.LogTable or 'staff_logs', whereSql), params) or 0
+    local offset = (page - 1) * pageSize
+
+    local queryParams = {}
+    for i = 1, #params do queryParams[i] = params[i] end
+    queryParams[#queryParams + 1] = pageSize
+    queryParams[#queryParams + 1] = offset
+
+    local rows = MySQL.query.await(('SELECT * FROM `%s` WHERE %s ORDER BY id DESC LIMIT ? OFFSET ?'):format(Config.LogTable or 'staff_logs', whereSql), queryParams) or {}
+
+    return {
+        rows = rows,
+        total = tonumber(total) or 0,
+        page = page,
+        pageSize = pageSize,
+        totalPages = math.max(1, math.ceil((tonumber(total) or 0) / pageSize)),
+        filters = {
+            category = tostring(filters.category or ''),
+            action = tostring(filters.action or ''),
+            actor = tostring(filters.actor or '')
+        }
+    }
+end
+
 RegisterNetEvent('mz_staffpanel:server:addCustomLog', function(category, action, message, targetSrc, metadata)
     local src = source
     if not P.CanOpen(src) then return end

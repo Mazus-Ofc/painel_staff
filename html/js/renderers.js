@@ -148,69 +148,110 @@ function renderVehicles() {
 }
 
 function renderLogs() {
-  const list = $("#logsList");
-  const logs = window.AppState.logs || [];
+  const list = $('#logsList');
+  const page = window.AppState.logsPage || { rows: [], total: 0, page: 1, totalPages: 1, filters: {} };
+  const logs = page.rows || window.AppState.logs || [];
+  const filters = page.filters || {};
 
-  list.innerHTML = logs.length
-    ? `
-    <div class="table-head">
-      <span>ID</span>
-      <span>Categoria</span>
-      <span>Ação</span>
-      <span>Ator</span>
-      <span>Alvo</span>
-      <span>Mensagem</span>
-      <span>Data</span>
-    </div>
-    ${logs
-      .map(
-        (log) => `
-      <div class="table-row">
-        <span>${Number(log.id || 0)}</span>
-        <span>${escapeHtml(log.category || "-")}</span>
-        <span>${escapeHtml(log.action || "-")}</span>
-        <span>${escapeHtml(log.actor_name || "-")}</span>
-        <span>${escapeHtml(log.target_name || "-")}</span>
-        <span>${escapeHtml(log.message || "")}</span>
-        <span>${fmtDate(log.created_at)}</span>
+  const pagination = `
+    <div class="pagination-bar">
+      <div class="pagination-info">Mostrando ${logs.length} de ${Number(page.total || 0)} logs • Página ${Number(page.page || 1)} / ${Number(page.totalPages || 1)}</div>
+      <div class="pagination-actions">
+        <button class="btn btn-small btn-secondary logs-page-btn" data-page="${Math.max(1, Number(page.page || 1) - 1)}" ${Number(page.page || 1) <= 1 ? 'disabled' : ''}>Anterior</button>
+        <button class="btn btn-small btn-secondary logs-page-btn" data-page="${Math.min(Number(page.totalPages || 1), Number(page.page || 1) + 1)}" ${Number(page.page || 1) >= Number(page.totalPages || 1) ? 'disabled' : ''}>Próxima</button>
       </div>
-    `,
-      )
-      .join("")}
-  `
-    : '<div class="empty">Sem logs.</div>';
+    </div>`;
+
+  list.innerHTML = `
+    <div class="filter-toolbar filter-toolbar-logs">
+      <input id="logsFilterCategory" class="input" type="text" placeholder="Filtrar categoria..." value="${escapeHtml(filters.category || '')}">
+      <input id="logsFilterAction" class="input" type="text" placeholder="Filtrar ação..." value="${escapeHtml(filters.action || '')}">
+      <input id="logsFilterActor" class="input" type="text" placeholder="Filtrar autor..." value="${escapeHtml(filters.actor || '')}">
+      <button id="logsClearFilters" class="btn btn-secondary">Geral</button>
+    </div>
+    ${pagination}
+    ${logs.length ? `
+      <div class="table-head table-head-logs">
+        <span>ID</span>
+        <span>Categoria</span>
+        <span>Ação</span>
+        <span>Ator</span>
+        <span>Alvo</span>
+        <span>Mensagem</span>
+        <span>Data</span>
+      </div>
+      ${logs.map((log) => `
+        <div class="table-row table-row-logs">
+          <span>${Number(log.id || 0)}</span>
+          <span>${escapeHtml(log.category || '-')}</span>
+          <span>${escapeHtml(log.action || '-')}</span>
+          <span>${escapeHtml(log.actor_name || '-')}</span>
+          <span>${escapeHtml(log.target_name || '-')}</span>
+          <span>${escapeHtml(log.message || '')}</span>
+          <span>${fmtDate(log.created_at)}</span>
+        </div>
+      `).join('')}
+    ` : '<div class="empty">Sem logs encontrados para esse filtro.</div>'}
+    ${pagination}
+  `;
 }
 
 function renderBans() {
-  const list = $("#bansList");
-  const bans = window.AppState.bans || [];
+  const list = $('#bansList');
+  const page = window.AppState.bansPage || { rows: [], total: 0, page: 1, totalPages: 1, filters: {} };
+  const bans = page.rows || window.AppState.bans || [];
+  const filters = page.filters || {};
 
-  list.innerHTML = bans.length
-    ? `
-    <div class="table-head">
-      <span>ID</span>
-      <span>Nome</span>
-      <span>Licença</span>
-      <span>Motivo</span>
-      <span>Banido por</span>
-      <span>Criado em</span>
-    </div>
-    ${bans
-      .map(
-        (b) => `
-      <div class="table-row">
-        <span>${Number(b.id || 0)}</span>
-        <span>${escapeHtml(b.name || "-")}</span>
-        <span>${escapeHtml(b.license || "-")}</span>
-        <span>${escapeHtml(b.reason || "-")}</span>
-        <span>${escapeHtml(b.bannedby || "-")}</span>
-        <span>${fmtDate(b.created_at)}</span>
+  const pagination = `
+    <div class="pagination-bar">
+      <div class="pagination-info">Mostrando ${bans.length} de ${Number(page.total || 0)} bans • Página ${Number(page.page || 1)} / ${Number(page.totalPages || 1)}</div>
+      <div class="pagination-actions">
+        <button class="btn btn-small btn-secondary bans-page-btn" data-page="${Math.max(1, Number(page.page || 1) - 1)}" ${Number(page.page || 1) <= 1 ? 'disabled' : ''}>Anterior</button>
+        <button class="btn btn-small btn-secondary bans-page-btn" data-page="${Math.min(Number(page.totalPages || 1), Number(page.page || 1) + 1)}" ${Number(page.page || 1) >= Number(page.totalPages || 1) ? 'disabled' : ''}>Próxima</button>
       </div>
-    `,
-      )
-      .join("")}
-  `
-    : '<div class="empty">Sem bans.</div>';
+    </div>`;
+
+  list.innerHTML = `
+    <div class="filter-toolbar filter-toolbar-bans">
+      <select id="bansFilterStatus" class="select">
+        <option value="" ${!filters.status ? 'selected' : ''}>Todos status</option>
+        <option value="active" ${filters.status === 'active' ? 'selected' : ''}>Ativo</option>
+        <option value="expired" ${filters.status === 'expired' ? 'selected' : ''}>Expirado</option>
+      </select>
+      <input id="bansFilterName" class="input" type="text" placeholder="Filtrar nome..." value="${escapeHtml(filters.name || '')}">
+      <input id="bansFilterReason" class="input" type="text" placeholder="Filtrar motivo..." value="${escapeHtml(filters.reason || '')}">
+      <input id="bansFilterAuthor" class="input" type="text" placeholder="Filtrar autor..." value="${escapeHtml(filters.bannedby || '')}">
+      <button id="bansClearFilters" class="btn btn-secondary">Geral</button>
+    </div>
+    ${pagination}
+    ${bans.length ? `
+      <div class="table-head table-head-bans">
+        <span>ID</span>
+        <span>Nome</span>
+        <span>Status</span>
+        <span>Motivo</span>
+        <span>Banido por</span>
+        <span>Expira</span>
+        <span>Criado em</span>
+      </div>
+      ${bans.map((b) => {
+        const expire = Number(b.expire || 0);
+        const expireText = expire >= 2147483647 ? 'Permanente' : (expire > 0 ? fmtDate(new Date(expire * 1000).toISOString()) : '-');
+        const statusText = String(b.status || 'active') === 'expired' ? 'Expirado' : 'Ativo';
+        return `
+        <div class="table-row table-row-bans">
+          <span>${Number(b.id || 0)}</span>
+          <span>${escapeHtml(b.name || '-')}</span>
+          <span>${escapeHtml(statusText)}</span>
+          <span>${escapeHtml(b.reason || '-')}</span>
+          <span>${escapeHtml(b.bannedby || '-')}</span>
+          <span>${escapeHtml(expireText)}</span>
+          <span>${fmtDate(b.created_at)}</span>
+        </div>`;
+      }).join('')}
+    ` : '<div class="empty">Nenhum ban encontrado.</div>'}
+    ${pagination}
+  `;
 }
 
 function renderReports() {
@@ -266,94 +307,69 @@ function renderPlayerModal(player) {
   const adminHistory = window.AppState.playerAdminHistory || {};
   const warns = adminHistory.warns || [];
   const bans = adminHistory.bans || [];
+  const lastWarn = warns[0] || {};
+  const lastBan = bans[0] || {};
+  const staffText = Array.isArray(player.staff) && player.staff.length ? escapeHtml(player.staff.join(', ')) : '-';
 
-  $("#playerModalSubtitle").textContent =
-    `[${player.online ? player.id : "OFF"}] ${player.name || "Sem nome"}`;
+  $('#playerModalSubtitle').textContent = `[${player.online ? player.id : 'OFF'}] ${player.name || 'Sem nome'}`;
 
-  $("#playerInfo").innerHTML = `
-    <div class="info-box"><span>Status</span><strong>${player.online ? "Online" : "Offline"}</strong></div>
-    <div class="info-box"><span>ID</span><strong>${player.online ? Number(player.id) : "Offline"}</strong></div>
-    <div class="info-box"><span>CitizenID</span><strong>${escapeHtml(player.citizenid || "-")}</strong></div>
-    <div class="info-box"><span>Job</span><strong>${escapeHtml(player.job || "-")}</strong></div>
-    <div class="info-box"><span>Gang</span><strong>${escapeHtml(player.gang || "-")}</strong></div>
-    <div class="info-box"><span>Staff</span><strong>${Array.isArray(player.staff) && player.staff.length ? escapeHtml(player.staff.join(", ")) : "-"}</strong></div>
-    <div class="info-box"><span>Ping</span><strong>${player.online ? Number(player.ping || 0) : "-"}</strong></div>
-    <div class="info-box"><span>Cash</span><strong>${Number(player.cash || 0)}</strong></div>
-    <div class="info-box"><span>Bank</span><strong>${Number(player.bank || 0)}</strong></div>
-    <div class="info-box"><span>Bucket</span><strong>${player.online ? Number(player.bucket || 0) : "-"}</strong></div>
-    <div class="info-box"><span>Telefone</span><strong>${escapeHtml(player.phone || "-")}</strong></div>
-    <div class="info-box"><span>License</span><strong>${escapeHtml(player.license || "-")}</strong></div>
-    <div class="info-box"><span>Discord</span><strong>${escapeHtml(player.discord || "-")}</strong></div>
-
-    <div class="player-punishment-box">
-      <h4>Punições do jogador</h4>
-      <div class="player-punishment-grid">
-        <div class="info-box">
-          <span>Total de warns</span>
-          <strong>${Number(player.warnsCount || warns.length || 0)}</strong>
-        </div>
-        <div class="info-box">
-          <span>Total de bans</span>
-          <strong>${Number(player.bansCount || bans.length || 0)}</strong>
-        </div>
-        <div class="info-box">
-          <span>Último warn</span>
-          <strong>${escapeHtml(player.lastWarnAt || "-")}</strong>
-        </div>
-        <div class="info-box">
-          <span>Último ban</span>
-          <strong>${escapeHtml(player.lastBanAt || "-")}</strong>
-        </div>
-        <div class="info-box">
-          <span>Motivo último warn</span>
-          <strong>${escapeHtml(player.lastWarnReason || "-")}</strong>
-        </div>
-        <div class="info-box">
-          <span>Motivo último ban</span>
-          <strong>${escapeHtml(player.lastBanReason || "-")}</strong>
+  $('#playerInfo').innerHTML = `
+    <div class="player-modal-layout">
+      <div class="modal-section soft-section">
+        <h4>Informações do jogador</h4>
+        <div class="player-basic-grid">
+          <div class="info-box"><span>Status</span><strong>${player.online ? 'Online' : 'Offline'}</strong></div>
+          <div class="info-box"><span>ID</span><strong>${player.online ? Number(player.id) : 'Offline'}</strong></div>
+          <div class="info-box"><span>CitizenID</span><strong>${escapeHtml(player.citizenid || '-')}</strong></div>
+          <div class="info-box span-2"><span>Job</span><strong>${escapeHtml(player.job || '-')}</strong></div>
+          <div class="info-box"><span>Gang</span><strong>${escapeHtml(player.gang || '-')}</strong></div>
+          <div class="info-box"><span>Staff</span><strong>${staffText}</strong></div>
+          <div class="info-box"><span>Ping</span><strong>${player.online ? Number(player.ping || 0) : '-'}</strong></div>
+          <div class="info-box"><span>Bucket</span><strong>${player.online ? Number(player.bucket || 0) : '-'}</strong></div>
+          <div class="info-box"><span>Cash</span><strong>${Number(player.cash || 0)}</strong></div>
+          <div class="info-box"><span>Bank</span><strong>${Number(player.bank || 0)}</strong></div>
+          <div class="info-box"><span>Telefone</span><strong>${escapeHtml(player.phone || '-')}</strong></div>
+          <div class="info-box span-full"><span>License</span><strong>${escapeHtml(player.license || '-')}</strong></div>
+          <div class="info-box span-full"><span>Discord</span><strong>${escapeHtml(player.discord || '-')}</strong></div>
         </div>
       </div>
 
-      <div class="admin-history-columns">
-        <div class="admin-history-card">
-          <h4>Warns aplicados</h4>
-          <div class="admin-history-list">
-            ${
-              warns.length
-                ? warns
-                    .map(
-                      (row, index) => `
-                <div class="admin-history-item">
-                  <strong>Warn ${warns.length - index}</strong>
-                  <span>${escapeHtml(row.reason || "-")}</span>
-                  <small>${escapeHtml(row.created_at || "-")}</small>
-                </div>
-              `,
-                    )
-                    .join("")
-                : '<div class="empty">Nenhum warn encontrado.</div>'
-            }
-          </div>
+      <div class="modal-section soft-section">
+        <h4>Punições do jogador</h4>
+        <div class="player-punishment-grid">
+          <div class="info-box"><span>Total de warns</span><strong>${Number(warns.length || 0)}</strong></div>
+          <div class="info-box"><span>Total de bans</span><strong>${Number(bans.length || 0)}</strong></div>
+          <div class="info-box"><span>Último warn</span><strong>${fmtDate(lastWarn.created_at || '')}</strong></div>
+          <div class="info-box"><span>Último ban</span><strong>${fmtDate(lastBan.created_at || '')}</strong></div>
+          <div class="info-box span-2"><span>Motivo último warn</span><strong>${escapeHtml(lastWarn.reason || '-')}</strong></div>
+          <div class="info-box span-2"><span>Motivo último ban</span><strong>${escapeHtml(lastBan.reason || '-')}</strong></div>
         </div>
 
-        <div class="admin-history-card">
-          <h4>Bans aplicados</h4>
-          <div class="admin-history-list">
-            ${
-              bans.length
-                ? bans
-                    .map(
-                      (row, index) => `
+        <div class="admin-history-columns">
+          <div class="admin-history-card">
+            <h4>Warns aplicados</h4>
+            <div class="admin-history-list">
+              ${warns.length ? warns.map((row, index) => `
+                <div class="admin-history-item">
+                  <strong>Warn ${warns.length - index}</strong>
+                  <span>${escapeHtml(row.reason || '-')}</span>
+                  <small>${fmtDate(row.created_at || '')}</small>
+                </div>
+              `).join('') : '<div class="empty">Nenhum warn encontrado.</div>'}
+            </div>
+          </div>
+
+          <div class="admin-history-card">
+            <h4>Bans aplicados</h4>
+            <div class="admin-history-list">
+              ${bans.length ? bans.map((row, index) => `
                 <div class="admin-history-item">
                   <strong>Ban ${bans.length - index}</strong>
-                  <span>${escapeHtml(row.reason || "-")}</span>
-                  <small>${escapeHtml(row.created_at || "-")}</small>
+                  <span>${escapeHtml(row.reason || '-')}</span>
+                  <small>${fmtDate(row.created_at || '')}</small>
                 </div>
-              `,
-                    )
-                    .join("")
-                : '<div class="empty">Nenhum ban encontrado.</div>'
-            }
+              `).join('') : '<div class="empty">Nenhum ban encontrado.</div>'}
+            </div>
           </div>
         </div>
       </div>
@@ -361,39 +377,35 @@ function renderPlayerModal(player) {
   `;
 
   if (!player.online) {
-    $("#playerActions").innerHTML = `
+    $('#playerActions').innerHTML = `
       <div class="empty">Jogador offline. Ações em tempo real indisponíveis.</div>
     `;
     return;
   }
 
   const actionDefs = [
-    ["Reviver", "revive"],
-    ["Curar", "heal"],
-    ["Matar", "kill"],
-    ["Congelar", "freeze"],
-    ["Ir até", "gotoPlayer"],
-    ["Trazer", "bringPlayer"],
-    ["Spectar", "spectate"],
-    ["Kick", "kick"],
-    ["Ban", "ban"],
-    ["Warn", "warn"],
-    ["Inventário", "inventory"],
-    ["Roupa", "cloth"],
-    ["Dimensão", "setDimension"],
-    ["Entrar veículo", "intoVehicle"],
-    ["Gerenciar staff", "staffManager"],
+    ['Reviver', 'revive'],
+    ['Curar', 'heal'],
+    ['Matar', 'kill'],
+    ['Congelar', 'freeze'],
+    ['Ir até', 'gotoPlayer'],
+    ['Trazer', 'bringPlayer'],
+    ['Spectar', 'spectate'],
+    ['Kick', 'kick'],
+    ['Ban', 'ban'],
+    ['Warn', 'warn'],
+    ['Inventário', 'inventory'],
+    ['Roupa', 'cloth'],
+    ['Dimensão', 'setDimension'],
+    ['Entrar veículo', 'intoVehicle'],
+    ['Gerenciar staff', 'staffManager'],
   ];
 
-  $("#playerActions").innerHTML = actionDefs
-    .map(
-      ([label, action]) => `
+  $('#playerActions').innerHTML = actionDefs.map(([label, action]) => `
     <button class="btn btn-secondary player-action-btn" data-action="${action}" data-player-id="${Number(player.id)}">
       ${escapeHtml(label)}
     </button>
-  `,
-    )
-    .join("");
+  `).join('');
 }
 
 function renderSupportMetaBar(report) {

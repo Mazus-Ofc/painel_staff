@@ -76,6 +76,20 @@ RegisterNUICallback('action', function(data, cb)
     cb('ok')
 end)
 
+
+RegisterNUICallback('getLogsPage', function(data, cb)
+    QBCore.Functions.TriggerCallback('mz_staffpanel:server:getLogsPage', function(resp)
+        cb(resp or { ok = false })
+    end, tonumber((data or {}).page or 1) or 1, tonumber((data or {}).pageSize or 20) or 20, (data or {}).filters or {})
+end)
+
+RegisterNUICallback('getBansPage', function(data, cb)
+    QBCore.Functions.TriggerCallback('mz_staffpanel:server:getBansPage', function(resp)
+        cb(resp or { ok = false })
+    end, tonumber((data or {}).page or 1) or 1, tonumber((data or {}).pageSize or 15) or 15, (data or {}).filters or {})
+end)
+
+
 RegisterNUICallback('supportFetch', function(data, cb)
     QBCore.Functions.TriggerCallback('mz_staffpanel:server:getSupportSession', function(session)
         cb(session or { ok = false })
