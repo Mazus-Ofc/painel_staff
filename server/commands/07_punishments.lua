@@ -22,3 +22,9 @@ P.RegisterQbCommand(Config.Commands.delwarn, 'Remover warn do jogador', {{name='
     if not ok then return P.Notify(source, data or 'Falha ao remover warn.', 'error') end
     P.Notify(source, ('Warn removido: %s'):format(data.warnId or '-'), 'success')
 end, Config.ActionPerms.warn)
+
+P.RegisterAliases(Config.Commands.unban, Config.Commands.unbanAliases, 'Remover ban pelo ID do registro', {{name='banId', help='ID do ban'}, {name='motivo', help='Motivo da remoção'}}, true, function(source, args)
+    local banId = tonumber(args[1])
+    table.remove(args, 1)
+    P.HandleAction(source, { action = 'unban', banId = banId, reason = table.concat(args, ' ') })
+end, Config.ActionPerms.unban)

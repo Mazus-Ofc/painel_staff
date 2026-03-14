@@ -608,6 +608,20 @@ function bindStaticEvents() {
       return;
     }
 
+    const unbanBtn = e.target.closest('.ban-unban-btn');
+    if (unbanBtn) {
+      const banId = Number(unbanBtn.dataset.banId || 0);
+      const banName = unbanBtn.dataset.banName || 'Jogador';
+      const reason = window.prompt(`Motivo da remoção do ban #${banId} (${banName}):`, 'Removido pela staff');
+      if (reason === null) return;
+      await nui('action', { action: 'unban', banId, reason });
+      setTimeout(async () => {
+        await refreshBansPage(window.AppState.bansPage?.page || 1);
+        await refreshPanel();
+      }, 180);
+      return;
+    }
+
     const playerBtn = e.target.closest(".player-open-btn");
     if (playerBtn) {
       await openPlayer(playerBtn.dataset.playerId);

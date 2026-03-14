@@ -77,6 +77,45 @@ function P.BanPlayerByAdmin(src, targetSrc, seconds, reason)
     end
 end
 
+function P.UnbanBanRecordByAdmin(src, banId, reason)
+    banId = tonumber(banId or 0)
+    if not banId or banId <= 0 then
+        return false, 'ID do ban inválido.'
+    end
+
+    local ban = MySQL.single.await(('SELECT * FROM `%s` WHERE id = ? LIMIT 1'):format(Config.BanTable), { banId })
+    if not ban then
+        return false, 'Ban não encontrado.'
+    end
+
+    local status = tostring(ban.status or 'active')
+    if status == 'removed' then
+        return false, 'Esse ban já foi removido.'
+    end
+
+    local removerName = GetPlayerName(src) or ('ID ' .. tostring(src))
+    local removeReason = tostring(reason or '')
+    if removeReason == '' then
+        removeReason = 'Removido pela staff'
+    end
+
+    local affected = MySQL.update.await(('UPDATE `%s` SET status = ?, removed_at = CURRENT_TIMESTAMP, removed_by = ?, remove_reason = ? WHERE id = ?'):format(Config.BanTable), {
+        'removed', removerName, removeReason, banId
+    })
+
+    if not affected or affected < 1 then
+        return false, 'Falha ao remover ban.'
+    end
+
+    return true, {
+        id = banId,
+        name = tostring(ban.name or '-'),
+        previousStatus = status,
+        removedBy = removerName,
+        removeReason = removeReason
+    }
+end
+
 function P.AddWarn(src, targetSrc, reason)
     local sender = QBCore.Functions.GetPlayer(src)
     local target = QBCore.Functions.GetPlayer(targetSrc)
@@ -182,8 +221,12 @@ function P.HandleAction(src, payload)
     if type(payload) ~= 'table' or not P.CanOpen(src) then return end
 
     local action = payload.action
-    local targetPlayer = payload.target and P.GetTarget(src, payload.target)
-    if payload.target and not targetPlayer then return end
+    local actionsWithoutTarget = { unban = true, kickall = true, spectateStop = true }
+    local targetPlayer = nil
+    if payload.target and not actionsWithoutTarget[action] then
+        targetPlayer = P.GetTarget(src, payload.target)
+        if not targetPlayer then return end
+    end
 
     local function actionLog(category, message, metadata)
         P.AddLog(category or 'action', tostring(action or 'unknown'), src, targetPlayer and targetPlayer.PlayerData.source or nil, message, metadata or payload)
@@ -302,6 +345,23 @@ function P.HandleAction(src, payload)
         else
             P.Notify(src, 'Falha ao banir. Verifique a tabela bans.', 'error')
             print('^1[mz_staffpanel] ban error:^7', err)
+        end
+
+    elseif action == 'unban' then
+        if not P.RequireAction(src, action) then return end
+        local banId = tonumber(payload.banId or payload.id or 0)
+        local reason = tostring(payload.reason or 'Removido pela staff')
+        local ok, dataOrError = P.UnbanBanRecordByAdmin(src, banId, reason)
+        if ok then
+            P.Notify(src, ('Ban #%s removido com sucesso.'):format(tostring(dataOrError.id or banId)), 'success')
+            P.AddLog('ban', 'unban', src, nil, ('Removeu o ban #%s'):format(tostring(dataOrError.id or banId)), {
+                banId = dataOrError.id or banId,
+                targetName = dataOrError.name or '-',
+                previousStatus = dataOrError.previousStatus or 'active',
+                reason = dataOrError.removeReason or reason
+            })
+        else
+            P.Notify(src, dataOrError or 'Falha ao remover ban.', 'error')
         end
 
     elseif action == 'warn' then

@@ -217,6 +217,7 @@ function renderBans() {
         <option value="" ${!filters.status ? 'selected' : ''}>Todos status</option>
         <option value="active" ${filters.status === 'active' ? 'selected' : ''}>Ativo</option>
         <option value="expired" ${filters.status === 'expired' ? 'selected' : ''}>Expirado</option>
+        <option value="removed" ${filters.status === 'removed' ? 'selected' : ''}>Removido</option>
       </select>
       <input id="bansFilterName" class="input" type="text" placeholder="Filtrar nome..." value="${escapeHtml(filters.name || '')}">
       <input id="bansFilterReason" class="input" type="text" placeholder="Filtrar motivo..." value="${escapeHtml(filters.reason || '')}">
@@ -233,20 +234,25 @@ function renderBans() {
         <span>Banido por</span>
         <span>Expira</span>
         <span>Criado em</span>
+        <span>Ações</span>
       </div>
       ${bans.map((b) => {
         const expire = Number(b.expire || 0);
+        const status = String(b.status || 'active');
         const expireText = expire >= 2147483647 ? 'Permanente' : (expire > 0 ? fmtDate(new Date(expire * 1000).toISOString()) : '-');
-        const statusText = String(b.status || 'active') === 'expired' ? 'Expirado' : 'Ativo';
+        const statusText = status === 'expired' ? 'Expirado' : (status === 'removed' ? 'Removido' : 'Ativo');
+        const canUnban = window.AppState?.perms?.unban === true;
+        const removedMeta = status === 'removed' ? ` por ${escapeHtml(b.removed_by || '-')} em ${fmtDate(b.removed_at)} (${escapeHtml(b.remove_reason || '-')})` : '';
         return `
         <div class="table-row table-row-bans">
           <span>${Number(b.id || 0)}</span>
           <span>${escapeHtml(b.name || '-')}</span>
-          <span>${escapeHtml(statusText)}</span>
+          <span title="${status === 'removed' ? removedMeta : ''}">${escapeHtml(statusText)}</span>
           <span>${escapeHtml(b.reason || '-')}</span>
           <span>${escapeHtml(b.bannedby || '-')}</span>
           <span>${escapeHtml(expireText)}</span>
           <span>${fmtDate(b.created_at)}</span>
+          <span>${canUnban && status !== 'removed' ? `<button class="btn btn-small btn-secondary ban-unban-btn" data-ban-id="${Number(b.id || 0)}" data-ban-name="${escapeHtml(b.name || '-') }">Remover</button>` : '<span class="muted-text">-</span>'}</span>
         </div>`;
       }).join('')}
     ` : '<div class="empty">Nenhum ban encontrado.</div>'}

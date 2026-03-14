@@ -89,6 +89,7 @@ Config.ActionPerms = {
     invisible = 'administrador',
     god = 'administrador',
     ban = 'administrador',
+    unban = 'administrador',
     setPermissions = 'administrador',
     giveWeapon = 'administrador',
     givenuifocus = 'administrador',
@@ -121,6 +122,8 @@ Config.Commands = {
 
     ban = 'ban',
     banAliases = {},
+    unban = 'unban',
+    unbanAliases = { 'desban' },
 
     warn = 'warn',
     checkwarns = 'checkwarns',

@@ -7,12 +7,19 @@ CREATE TABLE IF NOT EXISTS `bans` (
   `reason` VARCHAR(255) NULL,
   `expire` BIGINT NULL DEFAULT 0,
   `bannedby` VARCHAR(255) NULL,
+  `status` VARCHAR(24) NULL DEFAULT 'active',
+  `expired_at` TIMESTAMP NULL DEFAULT NULL,
+  `removed_at` TIMESTAMP NULL DEFAULT NULL,
+  `removed_by` VARCHAR(255) NULL DEFAULT NULL,
+  `remove_reason` VARCHAR(255) NULL DEFAULT NULL,
   `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_license` (`license`),
   KEY `idx_discord` (`discord`),
   KEY `idx_ip` (`ip`),
-  KEY `idx_expire` (`expire`)
+  KEY `idx_expire` (`expire`),
+  KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `player_warns` (

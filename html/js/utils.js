@@ -83,7 +83,7 @@ function performAction(action, target = null, extra = {}) {
     payload.reason = reason;
   }
 
-  if (action === "ban" && (!payload.reason || !payload.seconds)) {
+  if (action === "ban" && (!payload.reason || payload.seconds === undefined || payload.seconds === null || Number.isNaN(Number(payload.seconds)))) {
     const seconds = prompt(
       "Tempo do ban em segundos (0 = permanente):",
       "86400",
