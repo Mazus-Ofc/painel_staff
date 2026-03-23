@@ -107,7 +107,7 @@ end
 
 RegisterNetEvent('mz_staffpanel:server:addCustomLog', function(category, action, message, targetSrc, metadata)
     local src = source
-    if not P.CanOpen(src) then return end
+    if not P.CanAddCustomLog(src) then return end
 
     category = tostring(category or 'custom'):sub(1, 64)
     action = tostring(action or 'event'):sub(1, 64)

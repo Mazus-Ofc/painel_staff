@@ -24,6 +24,15 @@ Config.AceBypassPermissions = { 'mz_staffpanel.bypass', 'command.admin', 'comman
 Config.MzPermResource = 'mz_perm'
 Config.StaffManageAction = 'setPermissions'
 
+
+Config.ViewAccess = {
+    sensitiveData = 'suporte',
+    history = 'moderador',
+    logs = 'moderador',
+    bans = 'administrador',
+    customLog = 'diretor'
+}
+
 Config.AllowedStaffNames = {
     'helper',
     'suporte',
@@ -39,17 +48,17 @@ Config.AllowedStaffNames = {
 }
 
 Config.StaffHierarchy = {
-    helper = 1,
-    suporte = 2,
-    moderador = 3,
-    administrador = 4,
-    coord_hospital = 5,
-    coord_policia = 5,
-    coord_faccoes = 5,
-    coord_staff = 6,
-    gerente_administrativo = 7,
-    diretor = 8,
-    proprietario = 9
+    helper = 10,
+    suporte = 20,
+    moderador = 30,
+    administrador = 40,
+    coord_hospital = 50,
+    coord_policia = 50,
+    coord_faccoes = 50,
+    coord_staff = 60,
+    gerente_administrativo = 70,
+    diretor = 80,
+    proprietario = 90
 }
 
 Config.ActionPerms = {

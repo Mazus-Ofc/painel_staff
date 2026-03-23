@@ -328,13 +328,16 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
     end
 
     local players, staffOnline = P.GetOnlinePlayersData()
+    players = P.FilterPlayerDataForViewer(src, players)
     local totalBans = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.BanTable)) or 0
     local totalWarns = MySQL.scalar.await(('SELECT COUNT(*) FROM `%s`'):format(Config.WarnTable)) or 0
     local openReports = MySQL.scalar.await(([[SELECT COUNT(*) FROM `%s` WHERE status IN ('pendente', 'em_atendimento', 'aguardando_player', 'aguardando_staff')]]):format(Config.ReportTable or 'staff_reports')) or 0
     local reportRows = P.FetchRecentReports(25)
-    local logsPage = P.FetchLogsPage(1, 20, {})
-    local commandRows = MySQL.query.await(('SELECT * FROM `%s` WHERE category = ? ORDER BY id DESC LIMIT 10'):format(Config.LogTable or 'staff_logs'), { 'command' }) or {}
-    local banPage = P.FetchBansPage and P.FetchBansPage(1, 15, {}) or { rows = {}, total = 0, page = 1, pageSize = 15, totalPages = 1, filters = {} }
+    local canViewLogs = P.CanViewLogs(src)
+    local canViewBans = P.CanViewBans(src)
+    local logsPage = canViewLogs and P.FetchLogsPage(1, 20, {}) or { rows = {}, total = 0, page = 1, pageSize = 20, totalPages = 1, filters = {} }
+    local commandRows = canViewLogs and (MySQL.query.await(('SELECT * FROM `%s` WHERE category = ? ORDER BY id DESC LIMIT 10'):format(Config.LogTable or 'staff_logs'), { 'command' }) or {}) or {}
+    local banPage = canViewBans and P.FetchBansPage and P.FetchBansPage(1, 15, {}) or { rows = {}, total = 0, page = 1, pageSize = 15, totalPages = 1, filters = {} }
 
     cb({
         ok = true,
@@ -361,7 +364,7 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getData', function(src, cb
 end)
 
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getPlayerAdminHistory', function(src, cb, targetId)
-    if not P.CanOpen(src) then
+    if not P.CanViewHistory(src) then
         return cb({ ok = false, error = 'Sem permissão.' })
     end
 
@@ -385,6 +388,11 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getPlayerAdminHistory', fu
         return cb({ ok = false, error = 'Jogador não encontrado.' })
     end
 
+    local canTarget, targetErr = P.CanActOnTarget(src, targetId, 'history')
+    if not canTarget then
+        return cb({ ok = false, error = targetErr or 'Você não pode ver o histórico desse alvo.' })
+    end
+
     local license = tostring(targetPlayer.license or '')
     local warns = P.GetWarnHistoryByLicense and P.GetWarnHistoryByLicense(license) or {}
     local bans = MySQL.query.await(('SELECT * FROM `%s` WHERE license = ? ORDER BY id DESC'):format(Config.BanTable), {
@@ -400,7 +408,7 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getPlayerAdminHistory', fu
 end)
 
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getLogsPage', function(src, cb, page, pageSize, filters)
-    if not P.CanOpen(src) then
+    if not P.CanViewLogs(src) then
         return cb({ ok = false, error = 'Sem permissão.' })
     end
 
@@ -410,7 +418,7 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getLogsPage', function(src
 end)
 
 QBCore.Functions.CreateCallback('mz_staffpanel:server:getBansPage', function(src, cb, page, pageSize, filters)
-    if not P.CanOpen(src) then
+    if not P.CanViewBans(src) then
         return cb({ ok = false, error = 'Sem permissão.' })
     end
 

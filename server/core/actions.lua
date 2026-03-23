@@ -233,10 +233,55 @@ function P.HandleAction(src, payload)
 
     local action = payload.action
     local actionsWithoutTarget = { unban = true, kickall = true, spectateStop = true }
+    local targetProtectedActions = {
+        revive = true,
+        heal = true,
+        kill = true,
+        freeze = true,
+        gotoPlayer = true,
+        bringPlayer = true,
+        spectate = true,
+        kick = true,
+        ban = true,
+        warn = true,
+        setDimension = true,
+        intoVehicle = true,
+        inventory = true,
+        cloth = true,
+        giveWeapon = true,
+        setmodel = true,
+        setspeed = true,
+        setammo = true,
+        givenuifocus = true
+    }
+    local requiredTargetActions = {
+        revive = true,
+        kill = true,
+        freeze = true,
+        gotoPlayer = true,
+        bringPlayer = true,
+        spectate = true,
+        kick = true,
+        ban = true,
+        warn = true,
+        setDimension = true,
+        intoVehicle = true,
+        inventory = true,
+        cloth = true
+    }
     local targetPlayer = nil
     if payload.target and not actionsWithoutTarget[action] then
         targetPlayer = P.GetTarget(src, payload.target)
         if not targetPlayer then return end
+
+        if targetProtectedActions[action] then
+            local ok, err = P.CanActOnTarget(src, targetPlayer.PlayerData.source, action)
+            if not ok then
+                return P.Notify(src, err or 'Você não pode agir nesse alvo.', 'error')
+            end
+        end
+    elseif requiredTargetActions[action] then
+        return P.Notify(src, 'Essa ação exige um alvo válido.', 'error')
     end
 
     local function actionLog(category, message, metadata)

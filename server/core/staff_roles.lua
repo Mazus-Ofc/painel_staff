@@ -115,6 +115,11 @@ QBCore.Functions.CreateCallback('mz_staffpanel:server:getStaffManageData', funct
     local assignable, actorLevel = P.GetAssignableStaffRolesFor(src)
     local currentRoles = P.NormalizeStaffRoleList((rolesData and rolesData.roles) or {})
 
+    local canTarget, targetErr = P.CanActOnTarget(src, target, 'manage_staff')
+    if not canTarget then
+        return cb({ ok = false, error = targetErr or 'Você não pode gerenciar esse alvo.' })
+    end
+
     cb({
         ok = true,
         target = {
