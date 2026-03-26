@@ -34,6 +34,7 @@ server_scripts {
     'server/core/staff_duty.lua',
     'server/core/reports.lua',
     'server/core/staff_roles.lua',
+    'server/core/runtime_events.lua',
 
     'server/actions/shared.lua',
     'server/actions/players.lua',

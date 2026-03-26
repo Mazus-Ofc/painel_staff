@@ -199,9 +199,14 @@ function P.RegisterQbCommand(commandName, help, arguments, argsrequired, handler
     if not commandName or commandName == '' then return end
 
     QBCore.Commands.Add(commandName, help, arguments or {}, argsrequired == true, function(source, args, rawCommand)
+        if permission and permission ~= '' and not P.HasLevel(source, permission) then
+            return P.Notify(source, 'Você não tem permissão para este comando.', 'error')
+        end
+
         if P.AddLog then
             P.AddLog('command', commandName, source, nil, rawCommand or commandName, { args = args or {} })
         end
+
         handler(source, args, rawCommand)
-    end, permission or Config.MenuAccess)
+    end, 'user')
 end
