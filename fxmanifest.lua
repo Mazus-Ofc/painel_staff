@@ -26,13 +26,27 @@ client_scripts {
 
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
+
     'server/main.lua',
+
     'server/core/permissions.lua',
     'server/core/logs.lua',
     'server/core/staff_duty.lua',
     'server/core/reports.lua',
     'server/core/staff_roles.lua',
+
+    'server/actions/shared.lua',
+    'server/actions/players.lua',
+    'server/actions/punishments.lua',
+    'server/actions/toggles.lua',
+    'server/actions/communication.lua',
+    'server/actions/dimensions.lua',
+    'server/actions/vehicle.lua',
+    'server/actions/admin.lua',
+    'server/actions/dev.lua',
+
     'server/core/actions.lua',
+
     'server/lib/shared.lua',
     'server/commands/*.lua'
 }
