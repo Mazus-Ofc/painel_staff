@@ -358,6 +358,18 @@ textarea {
   gap: 6px;
 }
 
+.section-summary {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.load-more-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
 .report-toolbar {
   display: grid;
   grid-template-columns: 1fr 220px 220px;

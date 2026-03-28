@@ -9,6 +9,8 @@ window.AppState = {
   selectedPlayerData: null,
   vehicles: [],
   filteredVehicles: [],
+  vehiclePreviewLimit: 48,
+  visibleVehicleCount: 48,
   search: "",
   vehicleSearch: "",
   commandsSearch: "",
@@ -143,6 +145,11 @@ window.applyVehicleFilters = function () {
     .toLowerCase()
     .trim();
   const list = window.AppState.vehicles || [];
+
+  window.AppState.visibleVehicleCount = Number(
+    window.AppState.vehiclePreviewLimit || 48,
+  );
+
   if (!q) {
     window.AppState.filteredVehicles = list.slice();
     return;
@@ -154,6 +161,14 @@ window.applyVehicleFilters = function () {
       .toLowerCase()
       .includes(q);
   });
+};
+
+window.showMoreVehicles = function () {
+  const step = Number(window.AppState.vehiclePreviewLimit || 48);
+  const current = Number(window.AppState.visibleVehicleCount || step);
+  const total = (window.AppState.filteredVehicles || []).length;
+
+  window.AppState.visibleVehicleCount = Math.min(current + step, total);
 };
 
 window.applySupportFilters = function () {
@@ -237,6 +252,8 @@ window.hydrateState = function (data) {
     theme: data.theme || {},
     players: data.players || [],
     vehicles: data.vehicles || [],
+    vehiclePreviewLimit: Number(data.vehiclePreviewLimit || window.AppState.vehiclePreviewLimit || 48),
+    visibleVehicleCount: Number(data.vehiclePreviewLimit || window.AppState.vehiclePreviewLimit || 48),
     reports: data.reports || [],
     logs: data.logs || [],
     logsPage: data.logsPage || { rows: data.logs || [], total: (data.logs || []).length, page: 1, pageSize: 20, totalPages: 1, filters: { category: '', action: '', actor: '' } },

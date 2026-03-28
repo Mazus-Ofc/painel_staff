@@ -126,14 +126,35 @@ function renderPlayers() {
 
 function renderVehicles() {
   const list = $("#vehiclesList");
+  const summary = $("#vehiclesSummary");
+  const loadMoreWrap = $("#vehiclesLoadMoreWrap");
   const vehicles = window.AppState.filteredVehicles || [];
+  const previewLimit = Number(window.AppState.vehiclePreviewLimit || 48);
+  const visibleCount = Math.max(
+    previewLimit,
+    Number(window.AppState.visibleVehicleCount || previewLimit),
+  );
+  const visibleVehicles = vehicles.slice(0, visibleCount);
+  const remaining = Math.max(vehicles.length - visibleVehicles.length, 0);
 
-  list.innerHTML = vehicles.length
-    ? vehicles
+  if (summary) {
+    summary.textContent = vehicles.length
+      ? `Mostrando ${visibleVehicles.length} de ${vehicles.length} veículos`
+      : "Nenhum veículo encontrado";
+  }
+
+  list.innerHTML = visibleVehicles.length
+    ? visibleVehicles
         .map(
           (v) => `
     <div class="vehicle-card">
-      <img src="${escapeHtml(v.image || "")}" alt="${escapeHtml(v.name || "")}" onerror="this.style.display='none'">
+      <img
+        src="${escapeHtml(v.image || "")}"
+        alt="${escapeHtml(v.name || "")}"
+        loading="lazy"
+        decoding="async"
+        onerror="this.style.display='none'"
+      >
       <div class="vehicle-card-body">
         <strong>${escapeHtml(v.name || v.spawn || "-")}</strong>
         <span>${escapeHtml(v.spawn || "-")}</span>
@@ -145,6 +166,12 @@ function renderVehicles() {
         )
         .join("")
     : '<div class="empty">Nenhum veículo encontrado.</div>';
+
+  if (loadMoreWrap) {
+    loadMoreWrap.innerHTML = remaining > 0
+      ? `<button id="vehiclesLoadMoreBtn" class="btn btn-secondary">Carregar mais ${Math.min(remaining, previewLimit)} veículos</button>`
+      : "";
+  }
 }
 
 function renderLogs() {

@@ -8,7 +8,7 @@ Config.Theme = {
 
 Config.MenuAccess = 'helper'
 Config.VehicleImageBase = 'https://fivem.mazinho.org/imagens/carros/'
-Config.VehiclePreviewLimit = 300
+Config.VehiclePreviewLimit = 48
 Config.DefaultBanSeconds = 86400
 Config.BanTable = 'bans'
 Config.WarnTable = 'player_warns'

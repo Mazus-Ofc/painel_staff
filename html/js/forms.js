@@ -662,6 +662,13 @@ function bindStaticEvents() {
       return;
     }
 
+    const vehicleLoadMoreBtn = e.target.closest("#vehiclesLoadMoreBtn");
+    if (vehicleLoadMoreBtn) {
+      window.showMoreVehicles?.();
+      window.renderVehicles?.() || window.renderAll();
+      return;
+    }
+
     const vehicleBtn = e.target.closest(".vehicle-spawn-btn");
     if (vehicleBtn) {
       await nui("action", {
